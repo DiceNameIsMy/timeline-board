@@ -24,7 +24,7 @@ Product direction and open ideas live in `PLANS.md`. Prioritize a personal, keyb
 No dependency installation or build step is required. Use Python 3 for serving and Node.js 22+ for tests.
 
 - `npm start`: serve locally at `http://localhost:5173`.
-- `python3 -m http.server 5173 --bind 127.0.0.1`: equivalent without npm.
+- `python3 server.py`: equivalent without npm; serves current files without HTTP caching.
 - `npm test` or `node --test`: run all tests.
 - `node --test --experimental-test-isolation=none`: fallback when isolated test reporting is unavailable.
 - `git diff --check`: catch whitespace errors before submitting changes.

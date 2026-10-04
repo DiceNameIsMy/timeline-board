@@ -9,10 +9,14 @@ See [PLANS.md](PLANS.md) for the development direction, UX ideas, and open desig
 ## Run
 
 ```sh
-python3 -m http.server 5173 --bind 127.0.0.1
+python3 server.py
 ```
 
 Open <http://localhost:5173>. `npm start` runs the same command. JavaScript modules need an HTTP server; opening `index.html` directly will not work.
+
+The local server sends `Cache-Control: no-store` for application files and returns current files even when the browser sends a conditional request. This prevents older modules from being mixed with newer ones after edits or branch changes. After switching from the old server, restart it and hard reload once with Ctrl+Shift+R (Cmd+Shift+R on macOS) to replace previously cached files. Clearing site data is unnecessary and can delete entries.
+
+If hosting elsewhere, configure the host to prevent caching HTML, CSS, and JavaScript at their current stable URLs. For a future production build, use content-hashed asset filenames and revalidate HTML instead.
 
 ## Use
 

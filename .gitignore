@@ -5,4 +5,5 @@ node_modules/
 .agents/
 .aws/
 coverage/
+__pycache__/
 browser-artifacts/
