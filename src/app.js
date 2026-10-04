@@ -5,7 +5,7 @@ import { descriptionLinks } from './notes.js';
 import { setupFiles } from './files.js';
 import { visibleEntries } from './timeline.js';
 import { renderTimeline } from './render.js';
-import { outlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart, todayViewStart } from './viewport.js';
+import { paddedOutlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart, todayViewStart } from './viewport.js';
 import { keyboardCommand } from './keyboard.js';
 
 const get = id => document.getElementById(id);
@@ -33,7 +33,7 @@ let editingBlocked = loaded.blocked;
 const preserveSavedRecord = loaded.blocked;
 let entries = loaded.entries;
 let today = todayDate();
-let span = outlookDays(toDay(today), Number(horizon.value));
+let span = paddedOutlookDays(toDay(today), Number(horizon.value));
 let viewStart = todayViewStart(toDay(today), span);
 let range = viewportRange(viewStart, span);
 let buffer;
@@ -263,7 +263,7 @@ function moveTo(start, zoom = false) {
     cancelAnimationFrame(scrollFrame);
     scrollFrame = null;
   }
-  if (zoom) span = outlookDays(start, Number(horizon.value));
+  if (zoom) span = paddedOutlookDays(start, Number(horizon.value));
   viewStart = viewportRange(start, span).start;
   resetBuffer();
   render();
@@ -290,7 +290,7 @@ get('today').addEventListener('click', () => {
   moveToToday();
 });
 function moveToToday() {
-  span = outlookDays(toDay(today), Number(horizon.value));
+  span = paddedOutlookDays(toDay(today), Number(horizon.value));
   moveTo(todayViewStart(toDay(today), span));
 }
 for (const [id, amount] of [['previous', -1], ['next', 1]]) {

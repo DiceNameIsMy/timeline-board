@@ -80,9 +80,9 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   await page.keyboard.press('6');
   assert(await page.locator('#horizon').inputValue() === '6', '6 must change outlook');
   await page.keyboard.press('PageDown');
-  assert((await page.locator('#visible-range').textContent()).startsWith('Feb 28'), 'PageDown must move one selected outlook');
+  assert((await page.locator('#visible-range').textContent()).startsWith('Mar 21'), 'PageDown must move one selected outlook');
   await page.keyboard.press('t');
-  assert((await page.locator('#visible-range').textContent()).startsWith('Aug 28'), 'T must return to today with recent history');
+  assert((await page.locator('#visible-range').textContent()).startsWith('Sep 21'), 'T must return to today with recent history');
   assert(await page.locator('.today-marker text').evaluate(label => {
     const bounds = label.getBBox();
     const line = label.parentElement.querySelector('line');

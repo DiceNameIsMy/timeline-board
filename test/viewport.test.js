@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { toDay, MIN_DAY, MAX_DAY } from '../src/dates.js';
-import { outlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart, todayViewStart } from '../src/viewport.js';
+import { outlookDays, paddedOutlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart, todayViewStart } from '../src/viewport.js';
 import { dayPosition, makeTicks, visibleEntries, layoutEntries } from '../src/timeline.js';
 
 const start = toDay('2026-10-04');
@@ -95,13 +95,14 @@ test('outlook steps clamp month ends and stop at both calendar bounds', () => {
   assert.equal(shiftViewStart(toDay('0001-02-20'), -3, 92), MIN_DAY);
 });
 
-test('Today reserves recent history and label room across zoom levels and widths', () => {
+test('Today expands the selected window symmetrically by 7% across zoom levels and widths', () => {
   for (const months of [1, 3, 6]) for (const width of [280, 1400]) {
-    const span = outlookDays(start, months);
+    const nominalSpan = outlookDays(start, months);
+    const span = paddedOutlookDays(start, months);
     const viewStart = todayViewStart(start, span);
     const range = viewportRange(viewStart, span);
-    assert.equal(start - viewStart, Math.ceil(span / 5));
-    assert.ok(dayPosition(start, range, width) >= 70, 'Left-side Today label has room');
+    close(start - viewStart, nominalSpan * 0.07);
+    close(range.end - (start + nominalSpan), nominalSpan * 0.07);
     const buffer = makeScrollBuffer(viewStart, span, width);
     close(scrollViewStart(buffer.origin, buffer.scrollLeft, span, width), viewStart);
   }

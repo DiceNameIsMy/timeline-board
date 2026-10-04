@@ -21,7 +21,7 @@ If hosting elsewhere, configure the host to prevent caching HTML, CSS, and JavaS
 ## Use
 
 - Choose **1, 3, or 6 months**. Outlook controls the zoom: the selected period fits the visible area, while the timeline scrolls continuously into the past and future. Equal day intervals retain equal spacing while scrolling. The initial outlook is three months from today.
-- **Previous** and **Next** move by the selected outlook: 1, 3, or 6 calendar months. The initial view and **Today** reserve about one fifth of the outlook for recent history, leaving room for the Today label on the left of its marker. Scroll horizontally with a trackpad or touch swipe, drag with the mouse, or focus the timeline and use Left/Right arrow keys. Navigation covers years 0001–9999; the scroll buffer recenters as you move.
+- **Previous** and **Next** move by the selected outlook: 1, 3, or 6 calendar months. The visible window adds a 7% margin on each side of the selected outlook. The initial view and **Today** show that small margin of recent history before today and the same extra time beyond the outlook. Scroll horizontally with a trackpad or touch swipe, drag with the mouse, or focus the timeline and use Left/Right arrow keys. Navigation covers years 0001–9999; the scroll buffer recenters as you move.
 - Add a **Task** with its finish/submission date and optional planned start. Its box connects to the finish marker.
 - Add an **Event** with a date/start and optional end date. Interval boxes connect at the midpoint of their visible portion.
 - Select a box to edit or delete it. Tasks also have a completion checkbox directly on the card. Hovering or focusing a box highlights its connection.

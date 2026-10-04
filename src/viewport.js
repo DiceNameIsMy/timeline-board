@@ -16,9 +16,14 @@ export function clampViewStart(start, span) {
   return Math.max(MIN_DAY, Math.min(MAX_DAY - span, start));
 }
 
-/** Reserve one fifth of the Today view for recent history and its marker label. */
+/** Expand the selected calendar window by 7% on each side. */
+export function paddedOutlookDays(start, months) {
+  return outlookDays(start, months) * 1.14;
+}
+
+/** Place Today at the left edge of the selected window, inside its 7% margin. */
 export function todayViewStart(today, span) {
-  return clampViewStart(today - Math.ceil(span / 5), span);
+  return clampViewStart(today - span * 7 / 114, span);
 }
 
 export function viewportRange(start, span) {
