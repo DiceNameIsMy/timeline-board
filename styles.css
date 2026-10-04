@@ -38,7 +38,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .timeline-heading { font-size: .875rem; gap: 1rem; padding-bottom: .75rem; }
 .timeline-heading p { margin: 0; }
 #entry-count { color: #555; }
-#timeline { border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; overflow-anchor: none; overscroll-behavior-x: contain; }
+#timeline { border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; overflow-anchor: none; overscroll-behavior-x: contain; scrollbar-width: none; }
+#timeline::-webkit-scrollbar { display: none; }
 #scroll-track { position: relative; }
 #canvas { position: sticky; left: 0; width: 100%; min-height: 15rem; }
 #timeline.dragging { cursor: grabbing; user-select: none; }
