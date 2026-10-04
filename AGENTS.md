@@ -9,6 +9,7 @@ This is a small static app using HTML, CSS, and native JavaScript modules. `inde
 - `timeline.js`: proportional geometry, calendar bands, and collision layout.
 - `render.js`: measured HTML cards and SVG rendering.
 - `viewport.js`: zoom, fractional scroll positions, scroll buffers, and calendar bounds.
+- `keyboard.js`: pure shortcut resolution; preserve typing and native control behavior.
 - `storage.js`: validation, versioned persistence, and legacy migration.
 
 Tests live in `test/`. Keep calculation functions independent of the DOM so they remain easy to test.

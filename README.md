@@ -20,7 +20,7 @@ Open <http://localhost:5173>. `npm start` runs the same command. JavaScript modu
 - **Previous** and **Next** move by the selected outlook: 1, 3, or 6 calendar months. **Today** places today at the left inset to show upcoming items. Scroll horizontally with a trackpad or touch swipe, drag with the mouse, or focus the timeline and use Left/Right arrow keys. Navigation covers years 0001–9999; the scroll buffer recenters as you move.
 - Add a **Task** with its finish/submission date and optional planned start. Its box connects to the finish marker.
 - Add an **Event** with a date/start and optional end date. Interval boxes connect at the midpoint of their visible portion.
-- Select a box to edit, delete, or complete a task. Hovering or focusing a box highlights its connection.
+- Select a box to edit or delete it. Tasks also have a completion checkbox directly on the card. Hovering or focusing a box highlights its connection.
 - Completed tasks are hidden unless **Show completed** is checked.
 - Intervals extending beyond the outlook have continuation marks and retain their full dates in the box.
 - Saving an entry whose event start or task finish is outside the outlook moves the view to that date.
@@ -28,6 +28,14 @@ Open <http://localhost:5173>. `npm start` runs the same command. JavaScript modu
 Dates have day-level precision, without times of day. Interval endpoints are positioned at their calendar dates; same-day intervals appear as dots. On a small screen the selected time span still fits; crowded labels use additional vertical space.
 
 Alternating month bands separate the calendar visually. Each Monday has a separator; day-number labels appear every week when space allows and at a regular wider interval on narrow views. Month names sit above the axis, and the visible year or year range appears in the heading. A nearly clipped month can lose its label until more of it is visible.
+
+## Keyboard
+
+Press **N** to add; **J/K** to select next/previous entries in date order; **Enter** to edit the focused card; **X** to complete/reopen a focused task. Completing a hidden task focuses the next visible entry, or the previous one at the end; an empty view focuses the timeline.
+
+**1/3/6** changes the outlook, **Page Up/Page Down** moves by that outlook, and **T** returns to today. On the timeline or an edit button, **Left/Right** scrolls and **Up/Down** selects entries. **Enter** on the timeline opens the first visible entry.
+
+**Ctrl/Cmd+Enter** saves in the editor; **Escape** cancels a dialog. **?** or the **Keys** button shows all shortcuts. Shortcuts leave input fields and native select controls alone. Tab and Shift+Tab work normally, including the completion checkboxes.
 
 ## Storage and the previous view
 
@@ -64,5 +72,6 @@ See [browser/README.md](browser/README.md) for deterministic Playwright checks a
 - `src/storage.js`: validated JSDoc entry types, legacy migration, and persistence.
 - `src/app.js`: state, native forms, and navigation.
 - `src/viewport.js`: zoom, fractional date positions, scroll buffers, and calendar bounds.
+- `src/keyboard.js`: context-aware shortcut resolution, independent of the DOM.
 
 There are no project hierarchies, dependencies between tasks, progress tracking, or scheduled notifications.

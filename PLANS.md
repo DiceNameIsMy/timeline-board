@@ -56,12 +56,18 @@ This is one possible solution. Alternative designs are welcome if they provide c
 
 ## Improvement backlog
 
+Verified milestones:
+
+- Month bands, weekly Monday separators, and year context; renderer separated from pure layout.
+- Isolated browser regression harness with fixed dates, measured collisions, and desktop/mobile screenshots.
+- Direct card completion and keyboard adding, date-ordered selection, editing, saving, outlook navigation, and help. Completion focuses a nearby visible card; shortcuts do not intercept typing.
+
 The following sequence is a starting point, not a fixed schedule. Time readability above is an explicit UX priority to consider alongside these items.
 
 1. Establish a repeatable browser verification workflow with deterministic sample data, including add/edit/complete/reload, keyboard focus, and narrow screens.
 2. Add versioned JSON export/import with whole-file validation and explicit replacement. Preserve current data if import fails. Consider opening and repeatedly saving a local file afterward.
 3. Add quick task completion without opening the editor, with predictable focus after hidden completed tasks disappear. Use separate edit and completion controls rather than nesting a checkbox in a button.
-4. Add keyboard actions for creating entries, selecting and opening entries for editing, and changing the outlook. Exact shortcuts remain to be designed.
+4. Keyboard minimum is implemented: N adds, J/K selects, Enter edits, X completes, 1/3/6 changes outlook, Page Up/Down navigates, T returns to today, and ? opens help. Ctrl/Cmd+Enter saves in the editor. Review these conventions after real use.
 5. Add item descriptions with arbitrary text and links, shown in the details/editor. Checklists are a possible later addition.
 6. Add optional category labels and colors for distinctions such as exams, projects, and goals. Keep category separate from event/task kind.
 7. Make small structural improvements as needed: separate rendering from geometry, document interfaces, and extract growing interaction responsibilities from app.js.

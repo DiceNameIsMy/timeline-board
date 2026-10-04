@@ -24,9 +24,10 @@
             <option value="6">6 months</option>
           </select>
           <button id="add" type="button" class="primary">Add entry</button>
+          <button id="shortcuts" type="button" aria-label="Keyboard shortcuts">Keys</button>
         </div>
       </header>
-      <p class="hint">Events and tasks below the timeline. Scroll sideways or drag to explore. Focus the timeline and use arrow keys. Select a box to edit it.</p>
+      <p class="hint">Scroll sideways or drag to explore. Press N to add, J/K to select entries, Enter to edit. <button id="hint-keys" type="button" class="text-button">All shortcuts</button></p>
       <p id="message" role="status" hidden></p>
       <section aria-label="Personal timeline">
         <div class="timeline-heading">
@@ -85,6 +86,25 @@
           </div>
         </div>
       </form>
+    </dialog>
+    <dialog id="shortcuts-dialog" aria-labelledby="shortcuts-heading">
+      <h2 id="shortcuts-heading">Keyboard shortcuts</h2>
+      <dl class="shortcut-list">
+        <dt><kbd>N</kbd></dt><dd>Add an entry</dd>
+        <dt><kbd>J</kbd> / <kbd>K</kbd></dt><dd>Select next / previous entry by date</dd>
+        <dt><kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Select entries while on the timeline</dd>
+        <dt><kbd>Enter</kbd></dt><dd>Edit the focused entry; on the timeline, edit the first entry</dd>
+        <dt><kbd>X</kbd></dt><dd>Complete / reopen the focused task</dd>
+        <dt><kbd>1</kbd> / <kbd>3</kbd> / <kbd>6</kbd></dt><dd>Change outlook in months</dd>
+        <dt><kbd>Page Up</kbd> / <kbd>Page Down</kbd></dt><dd>Previous / next outlook</dd>
+        <dt><kbd>←</kbd> / <kbd>→</kbd></dt><dd>Scroll while on the timeline</dd>
+        <dt><kbd>T</kbd></dt><dd>Go to today</dd>
+        <dt><kbd>Ctrl/Cmd + Enter</kbd></dt><dd>Save in the entry editor</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Close a dialog without saving</dd>
+        <dt><kbd>?</kbd></dt><dd>Show this help</dd>
+      </dl>
+      <p class="hint">Shortcuts leave typing fields alone. Tab and Shift+Tab move through controls normally.</p>
+      <button id="close-shortcuts" type="button">Close</button>
     </dialog>
     <noscript>This app needs JavaScript to display and save your timeline.</noscript>
   </body>

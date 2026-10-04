@@ -3,6 +3,7 @@ import { loadEntries, saveEntries, validateEntry } from './storage.js';
 import { visibleEntries } from './timeline.js';
 import { renderTimeline } from './render.js';
 import { outlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart } from './viewport.js';
+import { keyboardCommand } from './keyboard.js';
 
 const get = id => document.getElementById(id);
 const canvas = get('canvas');
@@ -34,6 +35,26 @@ let suppressClickUntil = 0;
 let editingId = null;
 let editingKind = 'event';
 
+/** Cards in calendar order, independent of their collision rows or insertion order. */
+function entryCards() {
+  return [...get('boxes').children].sort((a, b) => Number(a.dataset.day) - Number(b.dataset.day) || a.dataset.id.localeCompare(b.dataset.id));
+}
+
+function focusEntry(id, fallbackIndex = 0) {
+  const cards = entryCards();
+  const card = cards.find(card => card.dataset.id === id) ?? cards[Math.min(fallbackIndex, cards.length - 1)];
+  (card?.querySelector('.entry-edit') ?? timeline).focus({ preventScroll: true });
+  card?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+function selectEntry(direction) {
+  const cards = entryCards();
+  const current = document.activeElement.closest('.entry-box');
+  const index = cards.indexOf(current);
+  const next = index < 0 ? (direction > 0 ? 0 : cards.length - 1) : Math.max(0, Math.min(cards.length - 1, index + direction));
+  focusEntry(cards[next]?.dataset.id);
+}
+
 function showMessage(text) {
   message.textContent = text ?? '';
   message.hidden = !text;
@@ -48,7 +69,7 @@ function render() {
   const visible = visibleEntries(entries, range, showCompleted.checked);
   renderTimeline({
     canvas, geometry: get('geometry'), boxes: get('boxes'),
-    entries: visible, range, today: toDay(today), onEdit: openEditor,
+    entries: visible, range, today: toDay(today), onEdit: openEditor, onComplete: toggleCompletion,
   });
   const startYear = fromDay(Math.floor(range.start)).slice(0, 4);
   const endYear = fromDay(Math.floor(range.end)).slice(0, 4);
@@ -77,6 +98,7 @@ function syncFields() {
 }
 
 function openEditor(entry = null) {
+  if (loaded.blocked || editor.open) return;
   editingId = entry?.id ?? null;
   form.reset();
   title.value = entry?.title ?? '';
@@ -104,8 +126,18 @@ function commit(nextEntries, entry = null) {
   showMessage(saveEntries(storage, entries));
   editor.close();
   render();
-  const button = entry ? [...get('boxes').children].find(button => button.dataset.id === entry.id) : null;
-  (button ?? get('add')).focus({ preventScroll: true });
+  if (entry) focusEntry(entry.id);
+  else get('add').focus({ preventScroll: true });
+}
+
+function toggleCompletion(entry) {
+  if (loaded.blocked || entry.kind !== 'task') return;
+  const index = entryCards().findIndex(card => card.dataset.id === entry.id);
+  entries = entries.map(existing => existing.id === entry.id ? { ...existing, completed: !existing.completed } : existing);
+  showMessage(saveEntries(storage, entries));
+  readScrollPosition();
+  render();
+  focusEntry(entry.id, Math.max(0, index));
 }
 
 get('add').addEventListener('click', () => openEditor());
@@ -211,11 +243,37 @@ showCompleted.addEventListener('change', () => {
   readScrollPosition();
   render();
 });
-timeline.addEventListener('keydown', event => {
-  if (event.target !== timeline || !['ArrowLeft', 'ArrowRight'].includes(event.key)
-    || event.altKey || event.ctrlKey || event.metaKey) return;
+const shortcuts = get('shortcuts-dialog');
+get('shortcuts').addEventListener('click', () => shortcuts.showModal());
+get('hint-keys').addEventListener('click', () => shortcuts.showModal());
+get('close-shortcuts').addEventListener('click', () => shortcuts.close());
+document.addEventListener('keydown', event => {
+  const active = document.activeElement;
+  const card = active.closest('.entry-box');
+  // Keep Enter/Space activation native on buttons and checkboxes.
+  const command = keyboardCommand(event, {
+    editorOpen: editor.open,
+    dialogOpen: Boolean(document.querySelector('dialog[open]')),
+    typing: active.matches('input, textarea, select') || active.isContentEditable,
+    inTimeline: active === timeline || Boolean(card && active.matches('.entry-edit')),
+    hasEntry: Boolean(card && active.matches('.entry-edit')),
+  });
+  if (!command || (command === 'edit' && active !== timeline)) return;
   event.preventDefault();
-  timeline.scrollLeft += (event.key === 'ArrowLeft' ? -1 : 1) * 60;
+  if (command === 'save') form.requestSubmit();
+  else if (command === 'add') openEditor();
+  else if (command === 'today') get('today').click();
+  else if (command === 'help') shortcuts.showModal();
+  else if (command === 'previous' || command === 'next') get(command).click();
+  else if (command.startsWith('zoom-')) {
+    horizon.value = command.slice(5);
+    horizon.dispatchEvent(new Event('change'));
+  } else if (command.startsWith('scroll-')) timeline.scrollLeft += (command === 'scroll-left' ? -1 : 1) * 60;
+  else if (command.startsWith('select-')) selectEntry(command === 'select-next' ? 1 : -1);
+  else if (command === 'edit') {
+    const first = entryCards()[0];
+    if (first) openEditor(entries.find(entry => entry.id === first.dataset.id));
+  } else if (command === 'complete') toggleCompletion(entries.find(entry => entry.id === card.dataset.id));
 });
 
 // Touch uses native scrolling; pointer capture begins only after a mouse drag.

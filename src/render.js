@@ -9,21 +9,28 @@ function svgElement(tag, attributes, text) {
   return element;
 }
 
-export function renderTimeline({ canvas, geometry, boxes, entries, range, today, onEdit }) {
+export function renderTimeline({ canvas, geometry, boxes, entries, range, today, onEdit, onComplete }) {
   const width = canvas.clientWidth;
   if (width <= 0) return;
   const unit = parseFloat(getComputedStyle(canvas).fontSize) / 16;
-  const focusedId = boxes.contains(document.activeElement) ? document.activeElement.dataset.id : null;
+  const focusedId = boxes.contains(document.activeElement) ? document.activeElement.closest('.entry-box')?.dataset.id : null;
   const initial = layoutEntries(entries, range, width, new Map(), unit);
   const buttons = new Map();
   const existing = new Map([...boxes.children].map(button => [button.dataset.id, button]));
   for (const item of initial.items) {
     const { entry, dates } = item;
-    const button = existing.get(entry.id) ?? document.createElement('button');
+    const card = existing.get(entry.id) ?? document.createElement('div');
+    card.className = `entry-box ${entry.kind}${entry.completed ? ' complete' : ''}`;
+    card.dataset.id = entry.id;
+    card.dataset.day = toDay(entry.kind === 'task' ? entry.finish : entry.start);
+    card.style.width = `${initial.boxWidth}px`;
+    let button = card.querySelector('.entry-edit');
+    if (!button) {
+      button = document.createElement('button');
+      button.className = 'entry-edit';
+      card.append(button);
+    }
     button.type = 'button';
-    button.className = `entry-box ${entry.kind}${entry.completed ? ' complete' : ''}`;
-    button.dataset.id = entry.id;
-    button.style.width = `${initial.boxWidth}px`;
     const dateLabel = formatRange(dates.start, dates.end);
     button.setAttribute('aria-label', `${entry.title}, ${entry.kind}${entry.completed ? ', complete' : ''}, ${dateLabel}. Edit entry.`);
     for (const [className, text] of [
@@ -39,8 +46,24 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
       if (span.textContent !== text) span.textContent = text;
     }
     button.onclick = () => onEdit(entry);
-    buttons.set(entry.id, button);
-    if (!existing.has(entry.id)) boxes.append(button);
+    let completion = card.querySelector('.entry-completion');
+    if (entry.kind === 'task') {
+      if (!completion) {
+        completion = document.createElement('label');
+        completion.className = 'entry-completion';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        completion.append(checkbox, document.createElement('span'));
+        card.append(completion);
+      }
+      const checkbox = completion.querySelector('input');
+      checkbox.checked = entry.completed;
+      checkbox.setAttribute('aria-label', `Complete ${entry.title}`);
+      checkbox.onchange = () => onComplete(entry);
+      completion.querySelector('span').textContent = entry.completed ? 'Completed' : 'Mark complete';
+    } else completion?.remove();
+    buttons.set(entry.id, card);
+    if (!existing.has(entry.id)) boxes.append(card);
   }
   for (const [id, button] of existing) if (!buttons.has(id)) button.remove();
   const sizes = new Map([...buttons].map(([id, button]) => [id, button.offsetHeight]));
@@ -87,8 +110,8 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
       }
     } else group.append(svgElement('circle', { cx: item.x, cy: item.markerY, r: 5 * unit, class: 'marker' }));
     geometry.append(group);
-    const highlight = () => group.classList.toggle('highlight', button.matches(':hover, :focus'));
-    for (const event of ['mouseenter', 'mouseleave', 'focus', 'blur']) button[`on${event}`] = highlight;
+    const highlight = () => group.classList.toggle('highlight', button.matches(':hover, :focus-within'));
+    for (const event of ['mouseenter', 'mouseleave', 'focusin', 'focusout']) button[`on${event}`] = highlight;
     highlight();
   }
   // Draw date labels over connectors so crossing branches cannot obscure their text.
