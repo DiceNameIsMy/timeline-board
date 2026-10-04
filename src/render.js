@@ -80,7 +80,6 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     const left = dayPosition(month.start, range, width);
     const right = dayPosition(month.end, range, width);
     geometry.append(svgElement('rect', { x: left, y: 0, width: right - left, height: layout.height, class: `month-band${month.shaded ? ' shaded' : ''}` }));
-    geometry.append(svgElement('line', { x1: left, x2: left, y1: 0, y2: layout.height, class: 'month-boundary' }));
     const label = svgElement('text', { x: left + 6 * unit, y: 24 * unit, class: 'month-label' }, month.label);
     geometry.append(label);
     // A nearly clipped month must not spill its label into the following month.

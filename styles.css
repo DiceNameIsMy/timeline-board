@@ -54,7 +54,6 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .tick-label { font-size: .875rem; fill: #555; stroke: #fff; stroke-width: 4; paint-order: stroke; stroke-linejoin: round; }
 .month-band { fill: #fff; }
 .month-band.shaded { fill: #f1f3f5; }
-.month-boundary { stroke: #d3d7dc; stroke-width: 1; }
 .month-label { font-size: .875rem; font-weight: 600; fill: #444; }
 .week-separator { stroke: #dde1e6; stroke-width: 1; stroke-dasharray: 2 4; }
 .entry-geometry { --entry-color: #555; }
