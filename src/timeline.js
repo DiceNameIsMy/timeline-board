@@ -100,7 +100,7 @@ export function layoutEntries(entries, range, width, sizes = new Map(), unit = 1
 /** Sparse labels selected by available pixel spacing, independently of screen size. */
 export function makeTicks(range, width, padding = 24, unit = 1) {
   const ticks = [];
-  let monthDate = `${fromDay(range.start).slice(0, 7)}-01`;
+  let monthDate = `${fromDay(Math.floor(range.start)).slice(0, 7)}-01`;
   while (toDay(monthDate) <= range.end) {
     const day = toDay(monthDate);
     if (day >= range.start) ticks.push({ day, label: formatMonth(monthDate), major: true });
@@ -110,7 +110,8 @@ export function makeTicks(range, width, padding = 24, unit = 1) {
   }
   const pixelsPerWeek = dayPosition(range.start + 7, range, width, padding) - padding;
   if (pixelsPerWeek >= 56 * unit) {
-    const firstMonday = range.start + ((4 - range.start) % 7 + 7) % 7;
+    const firstDay = Math.ceil(range.start);
+    const firstMonday = firstDay + ((4 - firstDay) % 7 + 7) % 7;
     for (let day = firstMonday; day <= range.end; day += 7) {
       if (ticks.every(tick => Math.abs(dayPosition(tick.day, range, width, padding) - dayPosition(day, range, width, padding)) >= 68 * unit)) {
         ticks.push({ day, label: formatTickDate(fromDay(day)), major: false });
@@ -142,10 +143,10 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
   const focusedId = boxes.contains(document.activeElement) ? document.activeElement.dataset.id : null;
   const initial = layoutEntries(entries, range, width, new Map(), unit);
   const buttons = new Map();
-  const fragment = document.createDocumentFragment();
+  const existing = new Map([...boxes.children].map(button => [button.dataset.id, button]));
   for (const item of initial.items) {
     const { entry, dates } = item;
-    const button = document.createElement('button');
+    const button = existing.get(entry.id) ?? document.createElement('button');
     button.type = 'button';
     button.className = `entry-box ${entry.kind}${entry.completed ? ' complete' : ''}`;
     button.dataset.id = entry.id;
@@ -156,22 +157,25 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
       ['entry-title', entry.title], ['entry-date', dateLabel],
       ['entry-type', entry.kind === 'task' ? `Task${entry.completed ? ' · complete' : ' · finish ' + formatTickDate(entry.finish)}` : 'Event'],
     ]) {
-      const span = document.createElement('span');
-      span.className = className;
-      span.textContent = text;
-      button.append(span);
+      let span = button.querySelector(`.${className}`);
+      if (!span) {
+        span = document.createElement('span');
+        span.className = className;
+        button.append(span);
+      }
+      if (span.textContent !== text) span.textContent = text;
     }
-    button.addEventListener('click', () => onEdit(entry));
+    button.onclick = () => onEdit(entry);
     buttons.set(entry.id, button);
-    fragment.append(button);
+    if (!existing.has(entry.id)) boxes.append(button);
   }
-  boxes.replaceChildren(fragment);
+  for (const [id, button] of existing) if (!buttons.has(id)) button.remove();
   const sizes = new Map([...buttons].map(([id, button]) => [id, button.offsetHeight]));
   const layout = layoutEntries(entries, range, width, sizes, unit);
   canvas.style.height = `${layout.height}px`;
   geometry.setAttribute('viewBox', `0 0 ${width} ${layout.height}`);
   geometry.replaceChildren();
-  geometry.append(svgElement('line', { x1: layout.padding, x2: width - layout.padding, y1: layout.axisY, y2: layout.axisY, class: 'axis' }));
+  geometry.append(svgElement('line', { x1: 0, x2: width, y1: layout.axisY, y2: layout.axisY, class: 'axis' }));
   for (const item of layout.items) {
     const button = buttons.get(item.entry.id);
     button.style.left = `${item.left}px`;
@@ -190,7 +194,8 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     } else group.append(svgElement('circle', { cx: item.x, cy: item.markerY, r: 5 * unit, class: 'marker' }));
     geometry.append(group);
     const highlight = () => group.classList.toggle('highlight', button.matches(':hover, :focus'));
-    for (const event of ['mouseenter', 'mouseleave', 'focus', 'blur']) button.addEventListener(event, highlight);
+    for (const event of ['mouseenter', 'mouseleave', 'focus', 'blur']) button[`on${event}`] = highlight;
+    highlight();
   }
   // Draw date labels over connectors so crossing branches cannot obscure their text.
   for (const tick of makeTicks(range, width, layout.padding, unit)) {
@@ -208,5 +213,5 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     marker.append(svgElement('text', { x, y: layout.axisY - 24 * unit, 'text-anchor': x > width / 2 ? 'end' : 'start' }, 'Today'));
     geometry.append(marker);
   }
-  if (focusedId) buttons.get(focusedId)?.focus({ preventScroll: true });
+  if (focusedId && !buttons.has(focusedId)) canvas.closest('[role="region"]').focus({ preventScroll: true });
 }

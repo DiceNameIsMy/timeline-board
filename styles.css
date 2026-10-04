@@ -38,8 +38,11 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .timeline-heading { font-size: .875rem; gap: 1rem; padding-bottom: .75rem; }
 .timeline-heading p { margin: 0; }
 #entry-count { color: #555; }
-#timeline { border: 1px solid #ddd; border-radius: 4px; }
-#canvas { position: relative; width: 100%; min-height: 15rem; }
+#timeline { border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; overflow-anchor: none; overscroll-behavior-x: contain; }
+#scroll-track { position: relative; }
+#canvas { position: sticky; left: 0; width: 100%; min-height: 15rem; }
+#timeline.dragging { cursor: grabbing; user-select: none; }
+#timeline.dragging .entry-box { cursor: grabbing; }
 #geometry { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .axis { stroke: #555; stroke-width: 1.5; }
 .tick { stroke: #777; stroke-width: 1; }

@@ -15,7 +15,7 @@
         <h1>Timeline</h1>
         <div class="controls">
           <button id="previous" type="button" aria-label="Previous month">Previous</button>
-          <button id="today" type="button">Today</button>
+          <button id="today" type="button" aria-label="Show upcoming items from today">Today</button>
           <button id="next" type="button" aria-label="Next month">Next</button>
           <label for="horizon">Outlook</label>
           <select id="horizon">
@@ -26,7 +26,7 @@
           <button id="add" type="button" class="primary">Add entry</button>
         </div>
       </header>
-      <p class="hint">Events above · Tasks below. Select a box to edit it.</p>
+      <p class="hint">Events above · Tasks below. Scroll sideways or drag to explore. Focus the timeline and use arrow keys. Select a box to edit it.</p>
       <p id="message" role="status" hidden></p>
       <section aria-label="Personal timeline">
         <div class="timeline-heading">
@@ -36,12 +36,15 @@
             <label class="checkbox"><input id="show-completed" type="checkbox"> Show completed</label>
           </div>
         </div>
-        <div id="timeline" role="region" aria-label="Timeline outlook">
-          <div id="canvas">
-            <svg id="geometry" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
-            <div id="boxes"></div>
+        <div id="timeline" role="region" aria-label="Scrollable timeline" aria-describedby="scroll-help" tabindex="0">
+          <div id="scroll-track">
+            <div id="canvas">
+              <svg id="geometry" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+              <div id="boxes"></div>
+            </div>
           </div>
         </div>
+        <p id="scroll-help" class="hint">Outlook sets the visible time span. Scroll left for earlier dates and right for later dates.</p>
         <div id="empty" hidden>
           <p id="empty-text">Your timeline is empty.</p>
           <button id="empty-add" type="button">Add your first entry</button>
