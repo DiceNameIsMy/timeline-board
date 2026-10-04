@@ -5,7 +5,7 @@ import { descriptionLinks } from './notes.js';
 import { setupFiles } from './files.js';
 import { visibleEntries } from './timeline.js';
 import { renderTimeline } from './render.js';
-import { outlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart } from './viewport.js';
+import { outlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart, todayViewStart } from './viewport.js';
 import { keyboardCommand } from './keyboard.js';
 
 const get = id => document.getElementById(id);
@@ -33,8 +33,8 @@ let editingBlocked = loaded.blocked;
 const preserveSavedRecord = loaded.blocked;
 let entries = loaded.entries;
 let today = todayDate();
-let viewStart = toDay(today);
-let span = outlookDays(viewStart, Number(horizon.value));
+let span = outlookDays(toDay(today), Number(horizon.value));
+let viewStart = todayViewStart(toDay(today), span);
 let range = viewportRange(viewStart, span);
 let buffer;
 let scrollFrame = null;
@@ -51,7 +51,8 @@ const files = setupFiles({
     files.changed();
     persistEntries();
     const first = [...entries].sort((a, b) => (a.kind === 'task' ? a.finish : a.start).localeCompare(b.kind === 'task' ? b.finish : b.start))[0];
-    moveTo(first ? toDay(first.kind === 'task' ? first.finish : first.start) : toDay(today), true);
+    if (first) moveTo(toDay(first.kind === 'task' ? first.finish : first.start), true);
+    else moveToToday();
     focusEntry(first?.id);
   },
   onError: text => {
@@ -286,8 +287,12 @@ timeline.addEventListener('scroll', () => {
 });
 get('today').addEventListener('click', () => {
   today = todayDate();
-  moveTo(toDay(today), true);
+  moveToToday();
 });
+function moveToToday() {
+  span = outlookDays(toDay(today), Number(horizon.value));
+  moveTo(todayViewStart(toDay(today), span));
+}
 for (const [id, amount] of [['previous', -1], ['next', 1]]) {
   get(id).addEventListener('click', () => {
     readScrollPosition();
@@ -296,7 +301,8 @@ for (const [id, amount] of [['previous', -1], ['next', 1]]) {
 }
 horizon.addEventListener('change', () => {
   readScrollPosition();
-  moveTo(viewStart, true);
+  if (Math.abs(viewStart - todayViewStart(toDay(today), span)) < 1e-7) moveToToday();
+  else moveTo(viewStart, true);
 });
 showCompleted.addEventListener('change', () => {
   readScrollPosition();
@@ -390,9 +396,9 @@ document.addEventListener('visibilitychange', () => {
   const nextToday = todayDate();
   if (today === nextToday) return;
   readScrollPosition();
-  const followsToday = Math.abs(viewStart - toDay(today)) < 1e-7;
+  const followsToday = Math.abs(viewStart - todayViewStart(toDay(today), span)) < 1e-7;
   today = nextToday;
-  if (followsToday) moveTo(toDay(today), true);
+  if (followsToday) moveToToday();
   else render();
 });
 

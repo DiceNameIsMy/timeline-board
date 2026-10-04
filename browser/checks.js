@@ -21,8 +21,9 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
     assert(separators.length >= 4, `Weekly separators missing at ${zoom}-month zoom`);
     assert(separators.slice(1).every((day, index) => day - separators[index] === 7), 'Separators must be seven days apart');
   }
-  await page.locator('#horizon').selectOption('3');
+  await page.locator('#horizon').selectOption('6');
   assert(await page.locator('#visible-year').textContent() === '2026 – 2027', 'Year context must show a year boundary');
+  await page.locator('#horizon').selectOption('3');
   const checkCards = async () => {
     const bounds = await page.locator('.entry-box').evaluateAll(elements => elements.map(element => {
       const { x, y, width, height } = element.getBoundingClientRect();
@@ -79,9 +80,14 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   await page.keyboard.press('6');
   assert(await page.locator('#horizon').inputValue() === '6', '6 must change outlook');
   await page.keyboard.press('PageDown');
-  assert((await page.locator('#visible-range').textContent()).includes('Apr'), 'PageDown must move one selected outlook');
+  assert((await page.locator('#visible-range').textContent()).startsWith('Feb 28'), 'PageDown must move one selected outlook');
   await page.keyboard.press('t');
-  assert((await page.locator('#visible-range').textContent()).startsWith('Oct 4'), 'T must return to today');
+  assert((await page.locator('#visible-range').textContent()).startsWith('Aug 28'), 'T must return to today with recent history');
+  assert(await page.locator('.today-marker text').evaluate(label => {
+    const bounds = label.getBBox();
+    const line = label.parentElement.querySelector('line');
+    return bounds.x >= 0 && bounds.x + bounds.width < Number(line.getAttribute('x1'));
+  }), 'Today label must fit fully to the left of its marker');
   await page.keyboard.press('3');
   await page.locator('[data-id="fixture-1"] .entry-edit').focus();
   await page.keyboard.press('x');

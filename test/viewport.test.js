@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { toDay, MIN_DAY, MAX_DAY } from '../src/dates.js';
-import { outlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart } from '../src/viewport.js';
+import { outlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart, todayViewStart } from '../src/viewport.js';
 import { dayPosition, makeTicks, visibleEntries, layoutEntries } from '../src/timeline.js';
 
 const start = toDay('2026-10-04');
@@ -95,14 +95,18 @@ test('outlook steps clamp month ends and stop at both calendar bounds', () => {
   assert.equal(shiftViewStart(toDay('0001-02-20'), -3, 92), MIN_DAY);
 });
 
-test('today alignment and left anchor survive zoom and viewport resize', () => {
+test('Today reserves recent history and label room across zoom levels and widths', () => {
   for (const months of [1, 3, 6]) for (const width of [280, 1400]) {
     const span = outlookDays(start, months);
-    const range = viewportRange(start, span);
-    assert.equal(dayPosition(start, range, width), 24);
-    const buffer = makeScrollBuffer(start, span, width);
-    close(scrollViewStart(buffer.origin, buffer.scrollLeft, span, width), start);
+    const viewStart = todayViewStart(start, span);
+    const range = viewportRange(viewStart, span);
+    assert.equal(start - viewStart, Math.ceil(span / 5));
+    assert.ok(dayPosition(start, range, width) >= 70, 'Left-side Today label has room');
+    const buffer = makeScrollBuffer(viewStart, span, width);
+    close(scrollViewStart(buffer.origin, buffer.scrollLeft, span, width), viewStart);
   }
+  assert.equal(todayViewStart(MIN_DAY, 92), MIN_DAY);
+  assert.equal(todayViewStart(MAX_DAY, 92), MAX_DAY - 92);
 });
 
 test('fractional viewport ticks use real dates and scrolled intervals retain clipping and filtering', () => {

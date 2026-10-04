@@ -136,7 +136,7 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     const x = dayPosition(today, range, width, layout.padding);
     const marker = svgElement('g', { class: 'today-marker' });
     marker.append(svgElement('line', { x1: x, x2: x, y1: layout.axisY + 4 * unit, y2: layout.height }));
-    marker.append(svgElement('text', { x, y: layout.axisY + 24 * unit, 'text-anchor': x > width / 2 ? 'end' : 'start' }, 'Today'));
+    marker.append(svgElement('text', { x: x - 6 * unit, y: layout.axisY + 24 * unit, 'text-anchor': 'end' }, 'Today'));
     geometry.append(marker);
   }
   if (focusedId && !buttons.has(focusedId)) canvas.closest('[role="region"]').focus({ preventScroll: true });

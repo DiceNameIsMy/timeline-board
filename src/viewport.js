@@ -16,6 +16,11 @@ export function clampViewStart(start, span) {
   return Math.max(MIN_DAY, Math.min(MAX_DAY - span, start));
 }
 
+/** Reserve one fifth of the Today view for recent history and its marker label. */
+export function todayViewStart(today, span) {
+  return clampViewStart(today - Math.ceil(span / 5), span);
+}
+
 export function viewportRange(start, span) {
   const clamped = clampViewStart(start, span);
   return { start: clamped, end: clamped + span };
