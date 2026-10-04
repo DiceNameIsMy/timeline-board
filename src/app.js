@@ -235,8 +235,7 @@ get('delete').addEventListener('click', () => {
 
 function viewportMetrics() {
   const width = timeline.clientWidth;
-  const unit = parseFloat(getComputedStyle(canvas).fontSize) / 16;
-  return { width, padding: Math.min(24 * unit, width / 10) };
+  return { width, padding: 0 };
 }
 
 // The sticky canvas renders the viewport; the wider track provides native scrolling.

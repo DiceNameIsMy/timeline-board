@@ -6,7 +6,7 @@ export function makeRange(date, months) {
   return { start: toDay(date), end: toDay(shiftMonths(date, months)) };
 }
 
-export function dayPosition(day, range, width, padding = 24) {
+export function dayPosition(day, range, width, padding = 0) {
   return padding + (day - range.start) / Math.max(1, range.end - range.start) * (width - padding * 2);
 }
 
@@ -42,11 +42,11 @@ export function layoutEntries(entries, range, width, sizes = new Map(), unit = 1
     const clippedStart = Math.max(start, range.start);
     const clippedEnd = Math.min(end, range.end);
     const anchor = entry.kind === 'task' ? clippedEnd : (clippedStart + clippedEnd) / 2;
-    const x = dayPosition(anchor, range, width, padding);
+    const x = dayPosition(anchor, range, width);
     return {
       entry, dates, start, end, x,
-      x1: dayPosition(clippedStart, range, width, padding),
-      x2: dayPosition(clippedEnd, range, width, padding),
+      x1: dayPosition(clippedStart, range, width),
+      x2: dayPosition(clippedEnd, range, width),
       before: start < range.start, after: end > range.end,
       left: Math.max(padding, Math.min(x - boxWidth / 2, width - padding - boxWidth)),
       boxWidth, boxHeight: sizes.get(entry.id) ?? 80 * unit,
@@ -109,7 +109,7 @@ export function makeMonths(range) {
 }
 
 /** Every Monday is a separator; day-number labels thin at a regular stride on narrow views. */
-export function makeTicks(range, width, padding = 24, unit = 1) {
+export function makeTicks(range, width, padding = 0, unit = 1) {
   const ticks = [];
   const pixelsPerWeek = dayPosition(range.start + 7, range, width, padding) - padding;
   const stride = Math.max(1, Math.ceil(28 * unit / Math.max(1, pixelsPerWeek)));

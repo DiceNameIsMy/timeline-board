@@ -37,7 +37,7 @@ test('repeated scroll buffer recentering preserves fractional dates in both dire
     assert.ok(buffer.width <= width * 5);
     close(scrollViewStart(buffer.origin, buffer.scrollLeft, span, width), day);
     const next = scrollViewStart(buffer.origin, buffer.scrollLeft + direction * 1000, span, width);
-    close(next - day, direction * 1000 * span / (width - 48));
+    close(next - day, direction * 1000 * span / width);
     day = next;
   }
   close(day, start + 0.125);

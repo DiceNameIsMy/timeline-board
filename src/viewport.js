@@ -35,7 +35,7 @@ export function viewportRange(start, span) {
  * A bounded native scroll runway, with up to two viewport widths on each side.
  * @returns {{origin: number, scrollLeft: number, width: number}}
  */
-export function makeScrollBuffer(start, span, width, padding = 24) {
+export function makeScrollBuffer(start, span, width, padding = 0) {
   const scale = (width - padding * 2) / span;
   const clamped = clampViewStart(start, span);
   const before = Math.min(width * 2, (clamped - MIN_DAY) * scale);
@@ -43,7 +43,7 @@ export function makeScrollBuffer(start, span, width, padding = 24) {
   return { origin: clamped - before / scale, scrollLeft: before, width: width + before + after };
 }
 
-export function scrollViewStart(origin, scrollLeft, span, width, padding = 24) {
+export function scrollViewStart(origin, scrollLeft, span, width, padding = 0) {
   return clampViewStart(origin + scrollLeft * span / (width - padding * 2), span);
 }
 

@@ -19,8 +19,8 @@ test('equal day intervals occupy equal distances at every width and horizon', ()
     const outlook = makeRange('2026-10-04', months);
     const x = day => dayPosition(outlook.start + day, outlook, width);
     assert.ok(Math.abs((x(14) - x(0)) - 2 * (x(7) - x(0))) < 1e-9);
-    assert.equal(dayPosition(outlook.start, outlook, width), 24);
-    assert.equal(dayPosition(outlook.end, outlook, width), width - 24);
+    assert.equal(dayPosition(outlook.start, outlook, width), 0);
+    assert.equal(dayPosition(outlook.end, outlook, width), width);
   }
 });
 
@@ -41,14 +41,14 @@ test('intersecting intervals and endpoints are visible; completed tasks are opti
 });
 
 test('tasks connect at finish, event intervals at their midpoint, with exact endpoint positions', () => {
-  const { items, padding } = layoutEntries([
+  const { items } = layoutEntries([
     task('project', '2026-11-01', '2026-10-10'), event('travel', '2026-11-10', '2026-11-20'),
   ], range, 1000);
   const project = items.find(item => item.entry.id === 'project');
   const travel = items.find(item => item.entry.id === 'travel');
-  assert.equal(project.x, dayPosition(toDay('2026-11-01'), range, 1000, padding));
+  assert.equal(project.x, dayPosition(toDay('2026-11-01'), range, 1000));
   assert.ok(Math.abs(travel.x - (travel.x1 + travel.x2) / 2) < 1e-9);
-  assert.equal(project.x1, dayPosition(toDay('2026-10-10'), range, 1000, padding));
+  assert.equal(project.x1, dayPosition(toDay('2026-10-10'), range, 1000));
   assert.equal(project.x2, project.x);
 });
 
@@ -69,10 +69,34 @@ test('clipped intervals keep full dates, continuation flags, and visible anchors
   ], range, 800);
   assert.equal(items[0].before, true);
   assert.equal(items[0].after, true);
-  assert.equal(items[0].x1, padding);
-  assert.equal(items[0].x2, 800 - padding);
+  assert.equal(items[0].x1, 0);
+  assert.equal(items[0].x2, 800);
   assert.equal(items[0].dates.start, '2026-09-01');
-  assert.equal(items[1].x, 800 - padding);
+  assert.equal(items[1].x, 800);
+  for (const item of items) {
+    assert.ok(item.left >= padding);
+    assert.ok(item.left + item.boxWidth <= 800 - padding);
+  }
+});
+
+test('entries remain visible inside the former edge insets until crossing the viewport edge', () => {
+  const entry = event('edge', '2026-10-04');
+  for (const width of [280, 800, 1400]) {
+    for (const x of [0, 12, width - 12, width]) {
+      const start = toDay(entry.start) - x * 92 / width;
+      const view = { start, end: start + 92 };
+      const visible = visibleEntries([entry], view, false);
+      assert.equal(visible.length, 1);
+      const layout = layoutEntries(visible, view, width);
+      assert.ok(Math.abs(layout.items[0].x - x) < 1e-8);
+      const bands = makeMonths(view);
+      assert.equal(dayPosition(bands[0].start, view, width), 0);
+      assert.equal(dayPosition(bands.at(-1).end, view, width), width);
+    }
+  }
+  const day = toDay(entry.start);
+  assert.equal(visibleEntries([entry], { start: day + 0.01, end: day + 92 }, false).length, 0);
+  assert.equal(visibleEntries([entry], { start: day - 92, end: day - 0.01 }, false).length, 0);
 });
 
 test('overlapping intervals use separate rails; disjoint intervals reuse a rail', () => {
@@ -139,7 +163,7 @@ test('crowded label layout never shifts the shared date anchor', () => {
   const { items } = layoutEntries([task('a', '2026-10-04'), task('b', '2026-10-04')], range, 280);
   assert.notEqual(items[0].row, items[1].row);
   assert.equal(items[0].x, items[1].x);
-  assert.equal(items[0].x, 24);
+  assert.equal(items[0].x, 0);
 });
 
 test('month bands follow unequal calendar months, including leap February', () => {

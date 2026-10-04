@@ -18,6 +18,12 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   for (const zoom of ['1', '3', '6']) {
     await page.locator('#horizon').selectOption(zoom);
     const separators = await page.locator('.week-separator').evaluateAll(elements => elements.map(element => Number(element.dataset.day)));
+    assert(await page.locator('.month-band').evaluateAll(bands => {
+      const first = bands[0];
+      const last = bands.at(-1);
+      return Number(first.getAttribute('x')) === 0
+        && Math.abs(Number(last.getAttribute('x')) + Number(last.getAttribute('width')) - first.ownerSVGElement.viewBox.baseVal.width) < 0.01;
+    }), 'Calendar bands must reach both viewport edges');
     assert(separators.length >= 4, `Weekly separators missing at ${zoom}-month zoom`);
     assert(separators.slice(1).every((day, index) => day - separators[index] === 7), 'Separators must be seven days apart');
   }

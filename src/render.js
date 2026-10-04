@@ -77,8 +77,8 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
   geometry.setAttribute('viewBox', `0 0 ${width} ${layout.height}`);
   geometry.replaceChildren();
   for (const month of makeMonths(range)) {
-    const left = dayPosition(month.start, range, width, layout.padding);
-    const right = dayPosition(month.end, range, width, layout.padding);
+    const left = dayPosition(month.start, range, width);
+    const right = dayPosition(month.end, range, width);
     geometry.append(svgElement('rect', { x: left, y: 0, width: right - left, height: layout.height, class: `month-band${month.shaded ? ' shaded' : ''}` }));
     geometry.append(svgElement('line', { x1: left, x2: left, y1: 0, y2: layout.height, class: 'month-boundary' }));
     const label = svgElement('text', { x: left + 6 * unit, y: 24 * unit, class: 'month-label' }, month.label);
@@ -86,8 +86,8 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     // A nearly clipped month must not spill its label into the following month.
     if (label.getBBox().width + 12 * unit > right - left) label.remove();
   }
-  for (const tick of makeTicks(range, width, layout.padding, unit)) {
-    const x = dayPosition(tick.day, range, width, layout.padding);
+  for (const tick of makeTicks(range, width, 0, unit)) {
+    const x = dayPosition(tick.day, range, width);
     geometry.append(svgElement('line', { x1: x, x2: x, y1: 34 * unit, y2: layout.height, class: 'week-separator', 'data-day': tick.day }));
   }
   geometry.append(svgElement('line', { x1: 0, x2: width, y1: layout.axisY, y2: layout.axisY, class: 'axis' }));
@@ -121,8 +121,8 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     highlight();
   }
   // Draw date labels over connectors so crossing branches cannot obscure their text.
-  for (const tick of makeTicks(range, width, layout.padding, unit)) {
-    const x = dayPosition(tick.day, range, width, layout.padding);
+  for (const tick of makeTicks(range, width, 0, unit)) {
+    const x = dayPosition(tick.day, range, width);
     geometry.append(svgElement('line', { x1: x, x2: x, y1: layout.axisY - 4 * unit, y2: layout.axisY + 4 * unit, class: 'tick' }));
     if (tick.label) {
       const label = svgElement('text', {
@@ -133,7 +133,7 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     }
   }
   if (today >= range.start && today <= range.end) {
-    const x = dayPosition(today, range, width, layout.padding);
+    const x = dayPosition(today, range, width);
     const marker = svgElement('g', { class: 'today-marker' });
     marker.append(svgElement('line', { x1: x, x2: x, y1: layout.axisY + 4 * unit, y2: layout.height }));
     marker.append(svgElement('text', { x: x - 6 * unit, y: layout.axisY + 24 * unit, 'text-anchor': 'end' }, 'Today'));
