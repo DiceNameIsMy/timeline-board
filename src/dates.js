@@ -52,3 +52,16 @@ export function formatTickDate(date) {
 export function formatRange(start, end) {
   return end && end !== start ? `${formatDate(start)} – ${formatDate(end)}` : formatDate(start);
 }
+
+/** Shift by calendar months, clamping month-end dates and supported calendar bounds. */
+export function shiftMonths(date, amount) {
+  toDay(date);
+  if (!Number.isInteger(amount)) throw new Error('Month offset must be an integer.');
+  const index = Math.max(12, Math.min(9999 * 12 + 11, Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7)) - 1 + amount));
+  const year = String(Math.floor(index / 12)).padStart(4, '0');
+  const month = String(index % 12 + 1).padStart(2, '0');
+  const last = new Date(`${year}-${month}-01T00:00:00Z`);
+  last.setUTCMonth(last.getUTCMonth() + 1, 0);
+  const day = String(Math.min(Number(date.slice(8)), last.getUTCDate())).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}

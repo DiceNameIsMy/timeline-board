@@ -1,135 +1,212 @@
-import { MIN_DAY, MAX_DAY, toDay, fromDay, formatMonth, formatTickDate, formatRange } from './dates.js';
+import { toDay, fromDay, shiftMonths, formatMonth, formatTickDate, formatRange } from './dates.js';
 
-export const LABEL_WIDTH = 240;
-export const LANE_HEIGHT = 106;
-const ENTRY_TOP = 54;
-
-export function dayPosition(day, rangeStart, scale) {
-  return (day - rangeStart) * scale;
+/** Inclusive outlook endpoints, shifted using calendar months rather than fixed day counts. */
+export function makeRange(date, months) {
+  if (![1, 3, 6].includes(months)) throw new Error('Choose a 1, 3, or 6 month outlook.');
+  return { start: toDay(date), end: toDay(shiftMonths(date, months)) };
 }
 
-/** Keep a bounded canvas; scrolling rebases it without compressing calendar gaps. */
-export function makeRange(center, scale, viewportWidth) {
-  const half = Math.max(90, Math.ceil(viewportWidth / scale * 2));
-  return {
-    start: Math.max(MIN_DAY, Math.floor(center) - half),
-    end: Math.min(MAX_DAY + 1, Math.floor(center) + half + 1),
-  };
+export function dayPosition(day, range, width, padding = 24) {
+  return padding + (day - range.start) / Math.max(1, range.end - range.start) * (width - padding * 2);
 }
 
-/**
- * Assign collision-free lanes. Label footprints count too, but date anchors never move.
- * @param {import('./storage.js').Entry[]} entries
- */
-export function layoutEntries(entries, range, scale) {
-  const candidates = entries.map(entry => {
-    const start = toDay(entry.start);
-    const end = entry.end === null ? start + 1 : toDay(entry.end) + 1;
-    const x = dayPosition(start, range.start, scale);
-    const durationWidth = entry.end === null ? 0 : (end - start) * scale;
-    return { entry, start, end, x, width: Math.max(LABEL_WIDTH, durationWidth), durationWidth };
-  }).filter(item => item.start < range.end && (item.entry.end === null ? item.start >= range.start : item.end > range.start))
-    .sort((a, b) => a.start - b.start || a.entry.id.localeCompare(b.entry.id));
+/** @param {import('./storage.js').Entry} entry */
+export function entryDates(entry) {
+  return entry.kind === 'task'
+    ? { start: entry.start ?? entry.finish, end: entry.finish }
+    : { start: entry.start, end: entry.end ?? entry.start };
+}
 
-  const laneEnds = [];
-  return candidates.map(item => {
-    const left = Math.max(0, item.x);
-    // Bars that began before this canvas still expose their title and dates.
-    const width = Math.min(Math.max(LABEL_WIDTH, item.x + item.width - left), (range.end - range.start) * scale - left);
-    let lane = laneEnds.findIndex(end => end + 12 <= left);
-    if (lane === -1) lane = laneEnds.length;
-    laneEnds[lane] = left + width;
-    return {
-      ...item, left, width, lane,
-      durationWidth: Math.max(0, Math.min(item.x + item.durationWidth - left, width)),
-    };
+/** Return intersecting entries; past/future portions of intervals are not discarded. */
+export function visibleEntries(entries, range, showCompleted) {
+  return entries.filter(entry => {
+    if (entry.kind === 'task' && entry.completed && !showCompleted) return false;
+    const dates = entryDates(entry);
+    return toDay(dates.start) <= range.end && toDay(dates.end) >= range.start;
   });
 }
 
-/** Calendar-aware tick generation: daily, Monday weekly, or month boundaries. */
-export function makeTicks(range, scale) {
+/**
+ * Pure geometry: independent label rows and interval rails on each side of a single axis.
+ * Boxes can move; all date markers retain their proportional positions.
+ * @param {import('./storage.js').Entry[]} entries
+ */
+export function layoutEntries(entries, range, width, sizes = new Map(), unit = 1) {
+  const padding = Math.min(24 * unit, width / 10);
+  const boxWidth = Math.min(224 * unit, width - padding * 2);
+  const gap = 12 * unit;
+  const items = entries.map(entry => {
+    const dates = entryDates(entry);
+    const start = toDay(dates.start);
+    const end = toDay(dates.end);
+    const clippedStart = Math.max(start, range.start);
+    const clippedEnd = Math.min(end, range.end);
+    const anchor = entry.kind === 'task' ? clippedEnd : (clippedStart + clippedEnd) / 2;
+    const x = dayPosition(anchor, range, width, padding);
+    return {
+      entry, dates, start, end, x,
+      x1: dayPosition(clippedStart, range, width, padding),
+      x2: dayPosition(clippedEnd, range, width, padding),
+      before: start < range.start, after: end > range.end,
+      left: Math.max(padding, Math.min(x - boxWidth / 2, width - padding - boxWidth)),
+      boxWidth, boxHeight: sizes.get(entry.id) ?? 80 * unit,
+      side: entry.kind === 'event' ? 'above' : 'below',
+    };
+  });
+  const sides = {};
+  for (const side of ['above', 'below']) {
+    const group = items.filter(item => item.side === side);
+    const railEnds = [];
+    for (const item of group.filter(item => item.start !== item.end).sort((a, b) => a.x1 - b.x1 || a.entry.id.localeCompare(b.entry.id))) {
+      let rail = railEnds.findIndex(end => end + 10 * unit < item.x1);
+      if (rail === -1) rail = railEnds.length;
+      railEnds[rail] = item.x2;
+      item.rail = rail;
+    }
+    const rowEnds = [];
+    const heights = [];
+    for (const item of group.sort((a, b) => a.x - b.x || a.entry.id.localeCompare(b.entry.id))) {
+      let row = rowEnds.findIndex(end => end + gap <= item.left);
+      if (row === -1) row = rowEnds.length;
+      rowEnds[row] = item.left + boxWidth;
+      heights[row] = Math.max(heights[row] ?? 0, item.boxHeight);
+      item.row = row;
+    }
+    sides[side] = {
+      heights, band: railEnds.length * 8 * unit,
+      total: heights.reduce((sum, height) => sum + height + gap, 0),
+    };
+  }
+  const axisY = padding + Math.max(60 * unit, sides.above.total + sides.above.band + 28 * unit);
+  for (const item of items) {
+    const side = sides[item.side];
+    const preceding = side.heights.slice(0, item.row).reduce((sum, height) => sum + height + gap, 0);
+    item.y = item.side === 'above'
+      ? axisY - side.band - 28 * unit - preceding - item.boxHeight
+      : axisY + side.band + 72 * unit + preceding;
+    item.markerY = item.start === item.end ? axisY
+      : axisY + (item.side === 'above' ? -1 : 1) * (item.rail + 1) * 8 * unit;
+    const boxEdge = item.side === 'above' ? item.y + item.boxHeight : item.y;
+    // One connector per box; its slight diagonal never forces date anchors to move.
+    item.connector = `M ${item.x} ${axisY} L ${item.x} ${item.markerY} L ${item.x} ${(item.markerY + boxEdge) / 2} L ${item.left + boxWidth / 2} ${boxEdge}`;
+  }
+  return {
+    items, axisY, padding, tickY: axisY + sides.below.band + 24 * unit,
+    height: Math.max(240 * unit, axisY + sides.below.band + 72 * unit + sides.below.total + padding),
+    boxWidth,
+  };
+}
+
+/** Sparse labels selected by available pixel spacing, independently of screen size. */
+export function makeTicks(range, width, padding = 24, unit = 1) {
   const ticks = [];
-  if (scale >= 32) {
-    for (let day = range.start; day < range.end; day++) {
-      const date = fromDay(day);
-      ticks.push({ day, label: day % 2 === 0 ? date.slice(8) : '', monthLabel: date.endsWith('-01') ? formatMonth(date) : null });
+  let monthDate = `${fromDay(range.start).slice(0, 7)}-01`;
+  while (toDay(monthDate) <= range.end) {
+    const day = toDay(monthDate);
+    if (day >= range.start) ticks.push({ day, label: formatMonth(monthDate), major: true });
+    const next = shiftMonths(monthDate, 1);
+    if (next === monthDate) break;
+    monthDate = next;
+  }
+  const pixelsPerWeek = dayPosition(range.start + 7, range, width, padding) - padding;
+  if (pixelsPerWeek >= 56 * unit) {
+    const firstMonday = range.start + ((4 - range.start) % 7 + 7) % 7;
+    for (let day = firstMonday; day <= range.end; day += 7) {
+      if (ticks.every(tick => Math.abs(dayPosition(tick.day, range, width, padding) - dayPosition(day, range, width, padding)) >= 68 * unit)) {
+        ticks.push({ day, label: formatTickDate(fromDay(day)), major: false });
+      }
     }
-  } else if (scale >= 12) {
-    // 1970-01-05 was a Monday (integer day 4).
-    const first = range.start + ((4 - range.start) % 7 + 7) % 7;
-    for (let day = first; day < range.end; day += 7) ticks.push({ day, label: formatTickDate(fromDay(day)) });
-  } else {
-    const date = fromDay(range.start);
-    let year = Number(date.slice(0, 4));
-    let month = Number(date.slice(5, 7));
-    while (year <= 9999) {
-      const monthDate = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-01`;
-      const day = toDay(monthDate);
-      if (day >= range.end) break;
-      if (day >= range.start) ticks.push({ day, label: formatMonth(monthDate) });
-      if (++month === 13) { month = 1; year++; }
-    }
+  }
+  ticks.sort((a, b) => a.day - b.day);
+  let previousLabel = -Infinity;
+  for (const tick of ticks) {
+    const x = dayPosition(tick.day, range, width, padding);
+    if (x - previousLabel < 76 * unit) tick.label = '';
+    else previousLabel = x;
   }
   return ticks;
 }
 
-/** Draw semantic entry buttons; CSS supplies only the ruler geometry. */
-export function renderTimeline({ canvas, ruler, entriesElement, todayLine, entries, range, scale, today, onEdit }) {
-  const width = (range.end - range.start) * scale;
-  const layout = layoutEntries(entries, range, scale);
-  const laneCount = layout.reduce((count, item) => Math.max(count, item.lane + 1), 0);
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${Math.max(318, ENTRY_TOP + laneCount * LANE_HEIGHT + 40)}px`;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function svgElement(tag, attributes, text) {
+  const element = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
+  if (text !== undefined) element.textContent = text;
+  return element;
+}
 
-  const ticks = document.createDocumentFragment();
-  for (const tick of makeTicks(range, scale)) {
-    const line = document.createElement('div');
-    line.className = 'tick';
-    line.style.left = `${dayPosition(tick.day, range.start, scale)}px`;
-    const label = document.createElement('span');
-    label.className = `tick-label${scale >= 32 ? ' day-label' : ''}`;
-    label.textContent = tick.label;
-    line.append(label);
-    if (tick.monthLabel) {
-      const month = document.createElement('span');
-      month.className = 'tick-label';
-      month.textContent = tick.monthLabel;
-      line.append(month);
-    }
-    ticks.append(line);
-  }
-  ruler.replaceChildren(ticks);
-
-  const buttons = document.createDocumentFragment();
-  for (const item of layout) {
-    const { entry } = item;
+export function renderTimeline({ canvas, geometry, boxes, entries, range, today, onEdit }) {
+  const width = canvas.clientWidth;
+  if (width <= 0) return;
+  const unit = parseFloat(getComputedStyle(canvas).fontSize) / 16;
+  const focusedId = boxes.contains(document.activeElement) ? document.activeElement.dataset.id : null;
+  const initial = layoutEntries(entries, range, width, new Map(), unit);
+  const buttons = new Map();
+  const fragment = document.createDocumentFragment();
+  for (const item of initial.items) {
+    const { entry, dates } = item;
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `entry ${entry.kind}${entry.end === null ? ' point' : ''}${entry.completed ? ' complete' : ''}`;
+    button.className = `entry-box ${entry.kind}${entry.completed ? ' complete' : ''}`;
     button.dataset.id = entry.id;
-    button.style.left = `${item.left}px`;
-    button.style.top = `${ENTRY_TOP + item.lane * LANE_HEIGHT}px`;
-    button.style.width = `${item.width}px`;
-    button.style.setProperty('--duration', `${item.durationWidth}px`);
-    const dates = formatRange(entry.start, entry.end);
-    button.setAttribute('aria-label', `${entry.title}, ${entry.kind}${entry.completed ? ', complete' : ''}, ${dates}. Edit entry.`);
-    button.title = `${entry.title}\n${dates}`;
-    const body = document.createElement('span');
-    body.className = 'entry-body';
+    button.style.width = `${initial.boxWidth}px`;
+    const dateLabel = formatRange(dates.start, dates.end);
+    button.setAttribute('aria-label', `${entry.title}, ${entry.kind}${entry.completed ? ', complete' : ''}, ${dateLabel}. Edit entry.`);
     for (const [className, text] of [
-      ['entry-title', entry.title], ['entry-date', dates],
-      ['entry-kind', entry.completed ? 'Task · complete' : entry.kind[0].toUpperCase() + entry.kind.slice(1)],
+      ['entry-title', entry.title], ['entry-date', dateLabel],
+      ['entry-type', entry.kind === 'task' ? `Task${entry.completed ? ' · complete' : ' · finish ' + formatTickDate(entry.finish)}` : 'Event'],
     ]) {
       const span = document.createElement('span');
       span.className = className;
       span.textContent = text;
-      body.append(span);
+      button.append(span);
     }
-    button.append(body);
     button.addEventListener('click', () => onEdit(entry));
-    buttons.append(button);
+    buttons.set(entry.id, button);
+    fragment.append(button);
   }
-  entriesElement.replaceChildren(buttons);
-  todayLine.hidden = today < range.start || today >= range.end;
-  todayLine.style.left = `${dayPosition(today, range.start, scale)}px`;
+  boxes.replaceChildren(fragment);
+  const sizes = new Map([...buttons].map(([id, button]) => [id, button.offsetHeight]));
+  const layout = layoutEntries(entries, range, width, sizes, unit);
+  canvas.style.height = `${layout.height}px`;
+  geometry.setAttribute('viewBox', `0 0 ${width} ${layout.height}`);
+  geometry.replaceChildren();
+  geometry.append(svgElement('line', { x1: layout.padding, x2: width - layout.padding, y1: layout.axisY, y2: layout.axisY, class: 'axis' }));
+  for (const item of layout.items) {
+    const button = buttons.get(item.entry.id);
+    button.style.left = `${item.left}px`;
+    button.style.top = `${item.y}px`;
+    const group = svgElement('g', { class: `entry-geometry ${item.entry.kind}${item.entry.completed ? ' complete' : ''}` });
+    group.append(svgElement('path', { d: item.connector, class: 'connector' }));
+    if (item.start !== item.end) {
+      group.append(svgElement('line', { x1: item.x1, x2: item.x2, y1: item.markerY, y2: item.markerY, class: 'interval' }));
+      for (const [x, clipped, direction, finish] of [
+        [item.x1, item.before, -1, false], [item.x2, item.after, 1, item.entry.kind === 'task'],
+      ]) {
+        group.append(clipped
+          ? svgElement('path', { d: `M ${x - direction * 5 * unit} ${item.markerY - 4 * unit} L ${x} ${item.markerY} L ${x - direction * 5 * unit} ${item.markerY + 4 * unit}`, class: 'continuation' })
+          : svgElement('circle', { cx: x, cy: item.markerY, r: (finish ? 5 : 3) * unit, class: 'marker' }));
+      }
+    } else group.append(svgElement('circle', { cx: item.x, cy: item.markerY, r: 5 * unit, class: 'marker' }));
+    geometry.append(group);
+    const highlight = () => group.classList.toggle('highlight', button.matches(':hover, :focus'));
+    for (const event of ['mouseenter', 'mouseleave', 'focus', 'blur']) button.addEventListener(event, highlight);
+  }
+  // Draw date labels over connectors so crossing branches cannot obscure their text.
+  for (const tick of makeTicks(range, width, layout.padding, unit)) {
+    const x = dayPosition(tick.day, range, width, layout.padding);
+    geometry.append(svgElement('line', { x1: x, x2: x, y1: layout.axisY - 4 * unit, y2: layout.axisY + 4 * unit, class: 'tick' }));
+    if (tick.label) geometry.append(svgElement('text', {
+      x, y: layout.tickY, class: 'tick-label',
+      'text-anchor': x > width - layout.padding - 68 * unit ? 'end' : 'start',
+    }, tick.label));
+  }
+  if (today >= range.start && today <= range.end) {
+    const x = dayPosition(today, range, width, layout.padding);
+    const marker = svgElement('g', { class: 'today-marker' });
+    marker.append(svgElement('line', { x1: x, x2: x, y1: layout.axisY - 18 * unit, y2: layout.axisY + 14 * unit }));
+    marker.append(svgElement('text', { x, y: layout.axisY - 24 * unit, 'text-anchor': x > width / 2 ? 'end' : 'start' }, 'Today'));
+    geometry.append(marker);
+  }
+  if (focusedId) buttons.get(focusedId)?.focus({ preventScroll: true });
 }

@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="A simple personal timeline for events, deadlines, and tasks.">
-    <title>Timeline</title>
+    <meta name="description" content="A personal outlook for project submissions, travel, and important events.">
+    <title>Timeline outlook</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
     <script type="module" src="src/app.js"></script>
@@ -14,32 +14,36 @@
       <header class="toolbar">
         <h1>Timeline</h1>
         <div class="controls">
+          <button id="previous" type="button" aria-label="Previous month">Previous</button>
           <button id="today" type="button">Today</button>
-          <label for="zoom">Scale</label>
-          <select id="zoom">
-            <option value="32">Days</option>
-            <option value="12" selected>Weeks</option>
-            <option value="3">Months</option>
+          <button id="next" type="button" aria-label="Next month">Next</button>
+          <label for="horizon">Outlook</label>
+          <select id="horizon">
+            <option value="1">1 month</option>
+            <option value="3" selected>3 months</option>
+            <option value="6">6 months</option>
           </select>
           <button id="add" type="button" class="primary">Add entry</button>
         </div>
       </header>
-      <p class="hint">Scroll horizontally to move through time. Select an entry to edit it.</p>
+      <p class="hint">Events above · Tasks below. Select a box to edit it.</p>
       <p id="message" role="status" hidden></p>
       <section aria-label="Personal timeline">
         <div class="timeline-heading">
           <p id="visible-range"></p>
-          <span id="entry-count"></span>
+          <div class="controls">
+            <span id="entry-count"></span>
+            <label class="checkbox"><input id="show-completed" type="checkbox"> Show completed</label>
+          </div>
         </div>
-        <div id="timeline" tabindex="0" role="region" aria-label="Scrollable timeline">
+        <div id="timeline" role="region" aria-label="Timeline outlook">
           <div id="canvas">
-            <div id="ruler" aria-hidden="true"></div>
-            <div id="entries"></div>
-            <div id="today-line" aria-hidden="true"><span>Today</span></div>
+            <svg id="geometry" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+            <div id="boxes"></div>
           </div>
         </div>
         <div id="empty" hidden>
-          <p>Your timeline is empty.</p>
+          <p id="empty-text">Your timeline is empty.</p>
           <button id="empty-add" type="button">Add your first entry</button>
         </div>
       </section>
@@ -54,17 +58,16 @@
         <label for="kind">Type</label>
         <select id="kind" name="kind">
           <option value="event">Event</option>
-          <option value="deadline">Deadline</option>
           <option value="task">Task</option>
         </select>
         <div class="date-fields">
           <div>
-            <label for="start">Date / start</label>
-            <input id="start" name="start" type="date" required min="0001-01-01" max="9999-12-31">
+            <label id="date-label" for="date">Date / start</label>
+            <input id="date" name="date" type="date" required min="0001-01-01" max="9999-12-31">
           </div>
           <div>
-            <label for="end">End date <span class="optional">(optional)</span></label>
-            <input id="end" name="end" type="date" min="0001-01-01" max="9999-12-31">
+            <label id="other-date-label" for="other-date">End date (optional)</label>
+            <input id="other-date" name="otherDate" type="date" min="0001-01-01" max="9999-12-31">
           </div>
         </div>
         <label id="completed-label" class="checkbox" hidden>

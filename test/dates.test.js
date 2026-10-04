@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { toDay, fromDay, todayDate, MIN_DAY, MAX_DAY } from '../src/dates.js';
+import { toDay, fromDay, todayDate, shiftMonths, MIN_DAY, MAX_DAY } from '../src/dates.js';
 
 test('calendar dates round-trip, including early years and leap days', () => {
   for (const date of ['0001-01-01', '0099-12-31', '1900-03-01', '2000-02-29', '2024-02-29', '9999-12-31']) {
@@ -25,4 +25,19 @@ test('calendar-day differences survive leap days and daylight-saving boundaries'
 test('today comes from local calendar fields, not a UTC date slice', () => {
   const now = new Date(2026, 9, 4, 0, 1);
   assert.equal(todayDate(now), '2026-10-04');
+});
+
+test('calendar-month shifts clamp month ends and handle leap years and early years', () => {
+  assert.equal(shiftMonths('2026-01-31', 1), '2026-02-28');
+  assert.equal(shiftMonths('2024-01-31', 1), '2024-02-29');
+  assert.equal(shiftMonths('2026-10-04', 3), '2027-01-04');
+  assert.equal(shiftMonths('2026-03-31', -1), '2026-02-28');
+  assert.equal(shiftMonths('0099-12-31', 1), '0100-01-31');
+  assert.equal(shiftMonths('0001-01-01', -1), '0001-01-01');
+  assert.equal(shiftMonths('9999-12-31', 6), '9999-12-31');
+  assert.throws(() => shiftMonths('2026-10-04', 1.5));
+});
+
+test('navigation offsets preserve the original day after a short month', () => {
+  assert.equal(shiftMonths('2026-01-31', 2), '2026-03-31');
 });

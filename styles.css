@@ -3,7 +3,7 @@
   font-family: system-ui, sans-serif;
   color: #222;
   background: #fff;
-  font-size: 16px;
+  font-size: 100%;
 }
 * { box-sizing: border-box; }
 body { margin: 0; }
@@ -32,41 +32,46 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   gap: .75rem;
 }
 .toolbar, .timeline-heading, .form-actions { justify-content: space-between; }
-.toolbar, .controls { flex-wrap: wrap; }
+.toolbar, .controls, .timeline-heading { flex-wrap: wrap; }
 .hint, footer { color: #555; font-size: .875rem; }
 .hint { margin: 1rem 0 1.5rem; }
-.timeline-heading { font-size: .875rem; min-height: 3rem; flex-wrap: wrap; }
+.timeline-heading { font-size: .875rem; gap: 1rem; padding-bottom: .75rem; }
 .timeline-heading p { margin: 0; }
 #entry-count { color: #555; }
-#timeline { overflow: auto; border: 1px solid #bbb; border-radius: 4px; min-height: 320px; max-height: 70vh; }
-#canvas { position: relative; min-height: 318px; }
-#ruler { position: absolute; inset: 0; pointer-events: none; }
-.tick { position: absolute; top: 0; bottom: 0; border-left: 1px solid #e5e5e5; }
-.tick-label { position: absolute; top: 12px; left: 5px; white-space: nowrap; font-size: .875rem; color: #555; }
-.day-label { top: 30px; }
-.entry {
+#timeline { border: 1px solid #ddd; border-radius: 4px; }
+#canvas { position: relative; width: 100%; min-height: 15rem; }
+#geometry { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.axis { stroke: #555; stroke-width: 1.5; }
+.tick { stroke: #777; stroke-width: 1; }
+.tick-label { font-size: .875rem; fill: #555; stroke: #fff; stroke-width: 4; paint-order: stroke; stroke-linejoin: round; }
+.entry-geometry { --entry-color: #555; }
+.entry-geometry.event { --entry-color: #245ec7; }
+.connector { fill: none; stroke: #aaa; stroke-width: 1; }
+.interval { stroke: var(--entry-color); stroke-width: 3; }
+.marker { fill: var(--entry-color); }
+.continuation { fill: none; stroke: var(--entry-color); stroke-width: 2; }
+.highlight .connector, .highlight .interval, .highlight .continuation { stroke: var(--entry-color); stroke-width: 3; }
+.highlight .marker { stroke: var(--entry-color); stroke-width: 3; }
+.entry-geometry.complete { opacity: .45; }
+.entry-box {
   position: absolute;
-  height: 90px;
   text-align: left;
-  padding: 12px 12px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: .65rem .75rem;
+  border: 1px solid #bbb;
   background: #fff;
-  overflow: clip;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
-.entry::before { content: ""; position: absolute; top: 0; left: 0; width: var(--duration); height: 4px; background: var(--entry-color); }
-.entry.point::before { width: 8px; height: 8px; border-radius: 50%; top: 2px; left: 0; }
-.entry.event { --entry-color: #245ec7; }
-.entry.deadline { --entry-color: #a12722; }
-.entry.task { --entry-color: #555; }
-.entry.complete { color: #666; background: #f5f5f5; }
-.entry.complete .entry-title { text-decoration: line-through; }
-.entry-body { display: block; position: sticky; left: 12px; width: min(216px, 100%); }
-.entry-title { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.entry-date, .entry-kind { display: block; font-size: .875rem; color: #555; }
-.entry-date { margin-top: 4px; }
-#today-line { position: absolute; top: 40px; bottom: 0; border-left: 1px dashed #555; pointer-events: none; }
-#today-line span { position: absolute; bottom: 8px; left: 5px; font-size: .875rem; background: #fff; padding: 2px; }
+.entry-box.event { border-top: 2px solid #245ec7; }
+.entry-box.task { border-top: 2px solid #555; }
+.entry-box.complete { color: #666; background: #f5f5f5; }
+.entry-box.complete .entry-title { text-decoration: line-through; }
+.entry-title { display: block; font-weight: 600; }
+.entry-date, .entry-type { display: block; font-size: .875rem; color: #555; }
+.entry-date { margin-top: .25rem; }
+.entry-type { margin-top: .15rem; }
+.today-marker { stroke: #777; stroke-width: 1; stroke-dasharray: 3 3; }
+.today-marker text { font-size: .875rem; fill: #444; stroke: #fff; stroke-width: 4; stroke-dasharray: none; paint-order: stroke; }
 #empty { margin: 1.5rem 0; }
 footer { margin-top: 1.5rem; }
 #message, #form-error { background: #fff3e0; color: #673b00; padding: .75rem; border-radius: 4px; }
@@ -76,7 +81,6 @@ form > label, .date-fields label { display: block; margin: 1rem 0 .4rem; }
 form > input, form > select { width: 100%; }
 .date-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .date-fields input { width: 100%; min-width: 0; }
-.optional { color: #555; font-size: .875rem; }
 .checkbox { display: flex; align-items: center; gap: .5rem; }
 .checkbox input { width: 1.1rem; height: 1.1rem; }
 .form-actions { margin-top: 1.75rem; }
