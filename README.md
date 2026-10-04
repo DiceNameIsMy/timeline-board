@@ -78,7 +78,7 @@ Tests cover calendar arithmetic, horizon spacing, clipping, label collisions, di
 
 The browser checklist is add/edit/delete, finish-first task input, completion visibility, reload persistence, 1/3/6 month navigation, Today, overlapping entries, narrow screens, and keyboard focus.
 
-See [browser/README.md](browser/README.md) for deterministic Playwright checks and screenshot verification.
+Run `npm run test:browser` for both deterministic Playwright suites, with an isolated browser and automatically managed local server. One-time setup is `npm ci` and `npx playwright install chromium`; see [browser/README.md](browser/README.md) for options, artifacts, and manual screenshot verification.
 
 ## Code
 

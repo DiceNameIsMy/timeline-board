@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "start": "python3 server.py",
-    "test": "node --test"
+    "test": "node --test",
+    "test:browser": "node browser/run.js"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
   }
 }

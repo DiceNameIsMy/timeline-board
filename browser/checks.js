@@ -1,4 +1,4 @@
-async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-artifacts' } = {}) => {
+export default async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-artifacts' } = {}) => {
   // Run on an isolated page/context; never use a user's populated browser profile.
   const results = [];
   const assert = (condition, message) => { if (!condition) throw new Error(message); };

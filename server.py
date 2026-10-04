@@ -1,5 +1,6 @@
 """Serve the local app without retaining outdated application files."""
 
+import argparse
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -25,8 +26,11 @@ class AppHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    with ThreadingHTTPServer(('127.0.0.1', 5173), AppHandler) as server:
-        print('Serving timeline at http://localhost:5173 (file caching disabled)', flush=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--port', type=int, default=5173)
+    args = parser.parse_args()
+    with ThreadingHTTPServer(('127.0.0.1', args.port), AppHandler) as server:
+        print(f'Serving timeline at http://127.0.0.1:{server.server_port} (file caching disabled)', flush=True)
         try:
             server.serve_forever()
         except KeyboardInterrupt:

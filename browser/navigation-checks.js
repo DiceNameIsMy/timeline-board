@@ -1,4 +1,4 @@
-async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-artifacts' } = {}) => {
+export default async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-artifacts' } = {}) => {
   const assert = (condition, message) => { if (!condition) throw new Error(message); };
   await page.clock.setFixedTime(new Date('2026-10-04T12:00:00Z'));
   // Exercise browsers without native filesystem APIs as well as supported ones.
@@ -39,7 +39,7 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   assert(await page.locator('[data-id="event"] .entry-edit').evaluate(element => element === document.activeElement), 'Resize must preserve card focus');
   await page.locator('#timeline').focus();
   await page.keyboard.press('Home');
-  await page.waitForFunction(() => document.querySelector('#visible-range').textContent.startsWith('Oct 4'));
+  await page.waitForFunction(expected => document.querySelector('#visible-range').textContent === expected, before);
   const session = await page.context().newCDPSession(page);
   await session.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
   const timeline = await page.locator('#timeline').boundingBox();
@@ -48,7 +48,7 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: touchX, y: touchY }] });
   for (let step = 1; step <= 6; step++) await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: touchX - step * 20, y: touchY }] });
   await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await page.waitForFunction(() => !document.querySelector('#visible-range').textContent.startsWith('Oct 4'));
+  await page.waitForFunction(previous => document.querySelector('#visible-range').textContent !== previous, before);
   assert(!await page.locator('#editor').evaluate(element => element.open), 'Touch scrolling must not open the editor');
   await session.detach();
   await page.locator('#today').click();
