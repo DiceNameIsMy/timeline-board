@@ -41,6 +41,12 @@ Press **N** to add; **J/K** to select next/previous entries in date order; **Ent
 
 ## Storage and the previous view
 
+Use **Export JSON** to download a complete local copy, including descriptions, categories, colors, IDs, and completed tasks. **Open JSON** validates an entire file and asks before replacing the current timeline. Invalid files and canceled imports leave entries unchanged. Existing v2 records and legacy v1 files can be opened.
+
+On browsers with native file access, **Open JSON** can connect to a file and **Save file** writes back to it. Saving without a connected file asks where to save. File access lasts for this tab; reopen the file after reloading. Other browsers use ordinary upload/download. Files save explicitly, while the browser copy saves automatically. The file status shows unsaved changes; closing/reloading after changes to an opened or exported file requests confirmation. Native picker availability depends on the browser and secure-context support.
+
+Portable exports contain `{ "format": "timeline-board", "version": 2, "entries": [...] }`. Keep these files somewhere durable. CSV, GitHub storage, and synchronization are not implemented.
+
 Entries belong to this browser and origin. Different ports, devices, browsers, and `localhost` vs `127.0.0.1` have separate data. Clearing browser data removes entries. There is no sync or backup service.
 
 The new view saves `{ "version": 2, "entries": [...] }` under `timeline-board-v2` in localStorage. Each entry has `id`, `title`, and `kind`:
@@ -52,7 +58,7 @@ Both kinds support optional `description` (plain text, up to 20,000 characters),
 
 Dates are `YYYY-MM-DD`. When no v2 record exists, the app reads the original `timeline-board` v1 record and converts deadlines to tasks, using the old end date as finish when present. The original record is never overwritten, so it remains available to the previous view in commit `016d4e8`. The two views' subsequent edits are independent.
 
-Save failures leave edits in memory and show a warning; save again after restoring storage access. Invalid saved data is preserved and editing is disabled. Use browser developer tools to copy the affected localStorage record somewhere safe, then repair or remove it before reloading. Invalid v2 data never silently falls back to v1.
+Save failures leave edits in memory and show a warning with **Retry browser save**. You can also export or save those edits to a file. Invalid saved data is preserved and initially disables editing. Opening a valid JSON file enables editing in this tab while leaving the unreadable browser record untouched; save/export the recovered timeline before reloading. Use browser developer tools to copy the affected localStorage record somewhere safe, then repair or remove it to restore normal browser saving. Invalid v2 data never silently falls back to v1.
 
 ## Verify
 
@@ -73,7 +79,8 @@ See [browser/README.md](browser/README.md) for deterministic Playwright checks a
 - `src/dates.js`: timezone-independent calendar arithmetic, month shifts, and formatting.
 - `src/timeline.js`: calendar bands, Monday separators, label collisions, and interval rails.
 - `src/render.js`: SVG rendering and measured HTML cards.
-- `src/storage.js`: validated JSDoc entry types, legacy migration, and persistence.
+- `src/storage.js`: legacy migration, versioned persistence, and portable file validation/serialization.
+- `src/files.js`: explicit file opening/saving, downloads/uploads, and file status.
 - `src/entries.js`: entry types, validation, and supported colors.
 - `src/notes.js`: safe HTTP(S) link extraction from plain text.
 - `src/app.js`: state, native forms, and navigation.

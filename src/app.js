@@ -2,6 +2,7 @@ import { toDay, fromDay, todayDate, formatRange } from './dates.js';
 import { loadEntries, saveEntries } from './storage.js';
 import { validateEntry } from './entries.js';
 import { descriptionLinks } from './notes.js';
+import { setupFiles } from './files.js';
 import { visibleEntries } from './timeline.js';
 import { renderTimeline } from './render.js';
 import { outlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart } from './viewport.js';
@@ -28,6 +29,8 @@ const showCompleted = get('show-completed');
 let storage;
 try { storage = window.localStorage; } catch { storage = null; }
 const loaded = loadEntries(storage);
+let editingBlocked = loaded.blocked;
+const preserveSavedRecord = loaded.blocked;
 let entries = loaded.entries;
 let today = todayDate();
 let viewStart = toDay(today);
@@ -39,6 +42,38 @@ let drag = null;
 let suppressClickUntil = 0;
 let editingId = null;
 let editingKind = 'event';
+const files = setupFiles({
+  getEntries: () => entries,
+  replaceEntries: imported => {
+    entries = imported;
+    editingBlocked = false;
+    setEditingBlocked();
+    files.changed();
+    persistEntries();
+    const first = [...entries].sort((a, b) => (a.kind === 'task' ? a.finish : a.start).localeCompare(b.kind === 'task' ? b.finish : b.start))[0];
+    moveTo(first ? toDay(first.kind === 'task' ? first.finish : first.start) : toDay(today), true);
+    focusEntry(first?.id);
+  },
+  onError: text => {
+    get('file-error').textContent = text ?? '';
+    get('file-error').hidden = !text;
+  },
+});
+
+function setEditingBlocked() {
+  get('add').disabled = editingBlocked;
+  get('empty-add').disabled = editingBlocked;
+  files.setBlocked(editingBlocked);
+}
+
+function persistEntries() {
+  const error = preserveSavedRecord
+    ? 'The unreadable browser record has been preserved. Changes are in this tab only; save or export a JSON file before reloading.'
+    : saveEntries(storage, entries);
+  showMessage(error);
+  get('retry-save').hidden = !error || preserveSavedRecord;
+}
+get('retry-save').addEventListener('click', persistEntries);
 
 /** Cards in calendar order, independent of their collision rows or insertion order. */
 function entryCards() {
@@ -65,8 +100,7 @@ function showMessage(text) {
   message.hidden = !text;
 }
 showMessage(loaded.error);
-get('add').disabled = loaded.blocked;
-get('empty-add').disabled = loaded.blocked;
+setEditingBlocked();
 
 function render() {
   range = viewportRange(viewStart, span);
@@ -103,7 +137,7 @@ function syncFields() {
 }
 
 function openEditor(entry = null) {
-  if (loaded.blocked || editor.open) return;
+  if (editingBlocked || editor.open) return;
   editingId = entry?.id ?? null;
   form.reset();
   title.value = entry?.title ?? '';
@@ -142,11 +176,12 @@ function commit(nextEntries, entry = null) {
   readScrollPosition();
   range = viewportRange(viewStart, span);
   entries = nextEntries;
+  files.changed();
   const relevant = entry ? toDay(entry.kind === 'task' ? entry.finish : entry.start) : null;
   if (relevant !== null && (relevant < range.start || relevant > range.end)) {
     moveTo(relevant);
   }
-  showMessage(saveEntries(storage, entries));
+  persistEntries();
   editor.close();
   render();
   if (entry) focusEntry(entry.id);
@@ -154,10 +189,11 @@ function commit(nextEntries, entry = null) {
 }
 
 function toggleCompletion(entry) {
-  if (loaded.blocked || entry.kind !== 'task') return;
+  if (editingBlocked || entry.kind !== 'task') return;
   const index = entryCards().findIndex(card => card.dataset.id === entry.id);
   entries = entries.map(existing => existing.id === entry.id ? { ...existing, completed: !existing.completed } : existing);
-  showMessage(saveEntries(storage, entries));
+  files.changed();
+  persistEntries();
   readScrollPosition();
   render();
   focusEntry(entry.id, Math.max(0, index));
@@ -178,7 +214,7 @@ kind.addEventListener('change', () => {
 date.addEventListener('input', syncFields);
 form.addEventListener('submit', event => {
   event.preventDefault();
-  if (loaded.blocked) return;
+  if (editingBlocked) return;
   try {
     const common = { id: editingId ?? crypto.randomUUID(), title: title.value, kind: kind.value, description: description.value, category: category.value, color: color.value };
     const entry = validateEntry(kind.value === 'task'
@@ -192,7 +228,7 @@ form.addEventListener('submit', event => {
   }
 });
 get('delete').addEventListener('click', () => {
-  if (!editingId || loaded.blocked) return;
+  if (!editingId || editingBlocked) return;
   if (window.confirm('Delete this entry?')) commit(entries.filter(entry => entry.id !== editingId));
 });
 

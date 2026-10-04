@@ -6,6 +6,8 @@ Use the existing Playwright MCP browser tooling to execute the function on a new
 
 Treat returned check groups as passing only if the function completes and there are no page errors. Inspect the saved screenshots for visual readability; collision assertions alone do not prove a clear layout.
 
+The harness uses English locale expectations; create its context with `locale: 'en-US'`. It tests actual download/upload with saved JSON artifacts. Native file saving uses a mocked picker and handle to check writes, reuse, dirty state, and failures; a real OS picker/permission check remains manual. It also verifies failed browser saves/retry and recovery from malformed storage without overwriting that record.
+
 The manual checklist remains: add/edit/delete; task/event date switching; completion filtering; reload persistence; 1/3/6 month navigation; Today; mouse panning without accidental edits; touch scrolling; five overlapping entries; narrow screens; keyboard focus. Test on a phone/touch browser separately when available.
 
 No browser package is required to run the app or unit tests. A standalone browser runner is a possible future convenience; the MCP harness can be used now without adding dependencies.

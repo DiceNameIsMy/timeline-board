@@ -13,6 +13,7 @@ This is a small static app using HTML, CSS, and native JavaScript modules. `inde
 - `storage.js`: validation, versioned persistence, and legacy migration.
 - `entries.js`: shared entry schema, validation, and supported colors.
 - `notes.js`: HTTP(S) links from plain text descriptions.
+- `files.js`: portable JSON and native file interactions; explicit file saving and dirty state.
 
 Tests live in `test/`. Keep calculation functions independent of the DOM so they remain easy to test.
 
@@ -49,3 +50,5 @@ History uses descriptive imperative subjects, such as “Add month-based timelin
 ## Storage Compatibility
 
 Store calendar dates as `YYYY-MM-DD`; preserve timezone-independent spacing. New data uses `timeline-board-v2`. Never overwrite the legacy `timeline-board` record during migration or silently replace malformed saved data.
+
+Descriptions, category labels, and named colors are optional v2 fields. File exports carry `format: 'timeline-board'` and version 2. Validate entire imports before replacement; opening a valid file after a failed browser read must preserve the unreadable browser record. Distinguish actual download/upload checks from mocked native picker checks.

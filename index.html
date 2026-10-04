@@ -29,6 +29,17 @@
       </header>
       <p class="hint">Scroll sideways or drag to explore. Press N to add, J/K to select entries, Enter to edit. <button id="hint-keys" type="button" class="text-button">All shortcuts</button></p>
       <p id="message" role="status" hidden></p>
+      <div class="file-toolbar">
+        <div class="controls" role="group" aria-label="Timeline files">
+          <button id="open-file" type="button">Open JSON</button>
+          <button id="export-file" type="button">Export JSON</button>
+          <button id="save-file" type="button" hidden>Save file</button>
+          <button id="retry-save" type="button" hidden>Retry browser save</button>
+          <input id="import-file" type="file" accept=".json,application/json" hidden>
+        </div>
+        <p id="file-status" role="status"></p>
+        <p id="file-error" role="alert" hidden></p>
+      </div>
       <section aria-label="Personal timeline">
         <div class="timeline-heading">
           <div class="range-heading"><strong id="visible-year"></strong><p id="visible-range"></p></div>
@@ -51,7 +62,7 @@
           <button id="empty-add" type="button">Add your first entry</button>
         </div>
       </section>
-      <footer>Saved in this browser only.</footer>
+      <footer>Browser copy saves automatically. Local files save when you export or choose Save file.</footer>
     </main>
 
     <dialog id="editor" aria-labelledby="editor-heading">

@@ -104,10 +104,106 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   await page.getByRole('button', { name: /Edited browser entry.*Edit entry/ }).click();
   assert(await page.locator('#description').inputValue() === details.description, 'Editor must restore notes');
   await page.screenshot({ path: `${artifactDirectory}/entry-details.png`, fullPage: true });
+  await page.keyboard.press('Escape');
+  const beforeExport = await page.evaluate(() => JSON.parse(localStorage.getItem('timeline-board-v2')).entries);
+  const downloading = page.waitForEvent('download');
+  await page.locator('#export-file').click();
+  const download = await downloading;
+  const exportedPath = `${artifactDirectory}/timeline-export.json`;
+  await download.saveAs(exportedPath);
+  await page.getByRole('button', { name: /Edited browser entry.*Edit entry/ }).click();
   page.once('dialog', dialog => dialog.accept());
   await page.locator('#delete').click();
   assert(await page.getByRole('button', { name: /Edited browser entry.*Edit entry/ }).count() === 0, 'Delete must remove the entry');
   assert(await page.locator('#add').evaluate(element => element === document.activeElement), 'Delete must return focus to Add');
   results.push('Task/event interval switching, details editing, deletion and focus');
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#import-file').setInputFiles(exportedPath);
+  await page.getByRole('button', { name: /Edited browser entry.*Edit entry/ }).waitFor();
+  const afterImport = await page.evaluate(() => JSON.parse(localStorage.getItem('timeline-board-v2')).entries);
+  assert(JSON.stringify(afterImport) === JSON.stringify(beforeExport), 'Actual JSON download/upload must round-trip every entry');
+  await page.evaluate(() => {
+    const input = document.querySelector('#import-file');
+    const transfer = new DataTransfer();
+    transfer.items.add(new File(['{broken'], 'invalid.json', { type: 'application/json' }));
+    input.files = transfer.files;
+    input.dispatchEvent(new Event('change'));
+  });
+  await page.locator('#file-error').waitFor();
+  assert(JSON.stringify(await page.evaluate(() => JSON.parse(localStorage.getItem('timeline-board-v2')).entries)) === JSON.stringify(beforeExport), 'Invalid import must preserve the browser record');
+  page.once('dialog', dialog => dialog.dismiss());
+  await page.locator('#import-file').setInputFiles(exportedPath);
+  await page.waitForFunction(() => !document.querySelector('#open-file').disabled);
+  assert(await page.locator('.entry-box').count() === beforeExport.length, 'Canceled import must preserve entries');
+  results.push('Actual JSON export/import round-trip, invalid import and cancellation');
+  // Native picker interaction needs a human. Verify the write lifecycle and
+  // handle reuse with browser-side handles, without displaying an unattended OS picker.
+  await page.evaluate(() => {
+    window.__fileWrites = [];
+    window.__pickerCalls = 0;
+    window.showSaveFilePicker = async () => {
+      window.__pickerCalls++;
+      return {
+        name: 'linked-timeline.json',
+        createWritable: async () => {
+          if (window.__denyFileWrite) throw new Error('Permission denied');
+          return { write: async text => window.__fileWrites.push(text), close: async () => {}, abort: async () => {} };
+        },
+      };
+    };
+  });
+  await page.locator('#save-file').click();
+  await page.waitForFunction(() => document.querySelector('#file-status').textContent.includes('linked-timeline.json'));
+  assert(await page.evaluate(() => JSON.parse(window.__fileWrites[0]).entries.length) === beforeExport.length, 'Native save must write the entire timeline');
+  await page.locator('[data-id="fixture-1"] input').click();
+  await page.waitForFunction(() => !document.querySelector('[data-id="fixture-1"]'));
+  assert((await page.locator('#file-status').textContent()).includes('unsaved'), 'Changes must mark the linked file dirty');
+  await page.evaluate(() => { window.__denyFileWrite = true; });
+  await page.locator('#save-file').click();
+  await page.locator('#file-error').waitFor();
+  assert((await page.locator('#file-status').textContent()).includes('unsaved'), 'A failed file write must remain dirty');
+  await page.evaluate(() => { window.__denyFileWrite = false; });
+  await page.locator('#save-file').click();
+  await page.waitForFunction(() => document.querySelector('#file-status').textContent.includes('file matches'));
+  assert(await page.evaluate(() => window.__pickerCalls) === 1, 'Repeated saves must reuse the selected handle');
+  assert(await page.evaluate(() => JSON.parse(window.__fileWrites.at(-1)).entries.find(entry => entry.id === 'fixture-1').completed), 'Repeated save must include new edits');
+  results.push('Native file save lifecycle, handle reuse, dirty state and write failure (picker mocked)');
+  await page.evaluate(() => {
+    window.__originalSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (key === 'timeline-board-v2') throw new Error('Storage full');
+      return window.__originalSetItem.call(this, key, value);
+    };
+  });
+  await page.locator('#add').click();
+  await page.locator('#title').fill('Unsaved browser edit');
+  await page.locator('#date').fill('2026-10-25');
+  await page.keyboard.press('Control+Enter');
+  await page.locator('#retry-save').waitFor();
+  await page.getByRole('button', { name: /Unsaved browser edit.*Edit entry/ }).waitFor();
+  assert(!(await page.evaluate(() => localStorage.getItem('timeline-board-v2'))).includes('Unsaved browser edit'), 'Failed browser save must preserve prior record');
+  await page.evaluate(() => { Storage.prototype.setItem = window.__originalSetItem; });
+  await page.locator('#retry-save').click();
+  assert((await page.evaluate(() => localStorage.getItem('timeline-board-v2'))).includes('Unsaved browser edit'), 'Retry must save in-memory edits');
+  await page.locator('#save-file').click();
+  await page.waitForFunction(() => document.querySelector('#file-status').textContent.includes('file matches'));
+  results.push('Browser write failure preserves edits and supports explicit retry');
+  await page.evaluate(() => { localStorage.setItem('timeline-board-v2', '{broken'); });
+  await page.reload();
+  assert(await page.locator('#add').isDisabled(), 'Invalid saved data must initially block editing');
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#import-file').setInputFiles(exportedPath);
+  await page.waitForFunction(() => !document.querySelector('#add').disabled);
+  assert(await page.evaluate(() => localStorage.getItem('timeline-board-v2')) === '{broken', 'File recovery must preserve unreadable browser data');
+  await page.locator('#add').click();
+  await page.locator('#title').fill('Recovered file edit');
+  await page.locator('#date').fill('2026-10-26');
+  await page.keyboard.press('Control+Enter');
+  await page.getByRole('button', { name: /Recovered file edit.*Edit entry/ }).waitFor();
+  assert(await page.evaluate(() => localStorage.getItem('timeline-board-v2')) === '{broken', 'Recovered edits must not overwrite unreadable data');
+  const recoveredDownload = page.waitForEvent('download');
+  await page.locator('#export-file').click();
+  await (await recoveredDownload).saveAs(`${artifactDirectory}/recovered-timeline.json`);
+  results.push('File recovery enables editing while preserving malformed storage');
   return results;
 }

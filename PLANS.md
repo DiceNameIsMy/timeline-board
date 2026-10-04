@@ -62,17 +62,27 @@ Verified milestones:
 - Isolated browser regression harness with fixed dates, measured collisions, and desktop/mobile screenshots.
 - Direct card completion and keyboard adding, date-ordered selection, editing, saving, outlook navigation, and help. Completion focuses a nearby visible card; shortcuts do not intercept typing.
 - Plain-text descriptions and HTTP(S) links in the editor, optional category labels, and six named colors. Shared entry validation now lives separately from storage. Existing v2 records remain valid.
+- Complete JSON download/upload, validated replacement, browser-save retry, and recovery that preserves malformed records. Native file opening/saving is implemented with tab-scoped handles and explicit saves; its write lifecycle is browser-tested with a mocked picker.
 
 The following sequence is a starting point, not a fixed schedule. Time readability above is an explicit UX priority to consider alongside these items.
 
 1. Establish a repeatable browser verification workflow with deterministic sample data, including add/edit/complete/reload, keyboard focus, and narrow screens.
-2. Add versioned JSON export/import with whole-file validation and explicit replacement. Preserve current data if import fails. Consider opening and repeatedly saving a local file afterward.
+2. JSON export/import and native file opening/repeated saving are implemented. Browser storage remains an automatic working copy. Files save explicitly; native OS picker permissions still need a manual check on the user's browser.
 3. Add quick task completion without opening the editor, with predictable focus after hidden completed tasks disappear. Use separate edit and completion controls rather than nesting a checkbox in a button.
 4. Keyboard minimum is implemented: N adds, J/K selects, Enter edits, X completes, 1/3/6 changes outlook, Page Up/Down navigates, T returns to today, and ? opens help. Ctrl/Cmd+Enter saves in the editor. Review these conventions after real use.
 5. Descriptions and links are implemented in the editor. Structured checklists remain a possible later addition; plain text already supports informal lists.
 6. Optional category labels and colors are implemented independently of event/task kind. Review the palette after real use.
 7. Make small structural improvements as needed: separate rendering from geometry, document interfaces, and extract growing interaction responsibilities from app.js.
-8. Explore dragging to change dates. Resolve conflicts with timeline panning and define whether moving a task finish shifts its planned start or moving an event shifts its whole interval.
+8. Date dragging is deliberately deferred until real use of the keyboard/editor workflow. The current drag gesture pans the timeline. A future prototype should use explicit handles and define interval movement before implementation.
+
+## Decisions and remaining checks
+
+- Keep native JavaScript modules; no framework, backend, or package installation is needed for the delivered features.
+- Use JSON as the durable local format, with browser storage as an automatic working copy. No CSV or remote storage is needed yet.
+- Keep keyboard conventions discoverable in the Keys dialog and avoid shortcuts in typing controls. Review conventions after actual use rather than adding more speculative commands.
+- Keep descriptions plain text with HTTP(S) links. Structured checklists and richer text formatting remain optional future ideas.
+- Manually verify real native file picker permissions and file overwriting; automated browser tests mock that OS boundary.
+- Check real touch hardware and additional browser engines when available. Narrow-screen Chromium checks do not substitute for those checks.
 
 ## Development and agent workflow
 

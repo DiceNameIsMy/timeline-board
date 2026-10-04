@@ -40,6 +40,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .range-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .75rem; }
 #visible-year { font-size: 1rem; }
 #entry-count { color: #555; }
+.file-toolbar { margin: 0 0 1.25rem; }
+#file-status { margin: .5rem 0 0; font-size: .875rem; color: #555; overflow-wrap: anywhere; }
 #timeline { border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; overflow-anchor: none; overscroll-behavior-x: contain; scrollbar-width: none; }
 #timeline::-webkit-scrollbar { display: none; }
 #scroll-track { position: relative; }
@@ -94,7 +96,7 @@ kbd { font-family: inherit; font-size: .85rem; background: #f1f3f5; border: 1px 
 .today-marker text { font-size: .875rem; fill: #444; stroke: #fff; stroke-width: 4; stroke-dasharray: none; paint-order: stroke; }
 #empty { margin: 1.5rem 0; }
 footer { margin-top: 1.5rem; }
-#message, #form-error { background: #fff3e0; color: #673b00; padding: .75rem; border-radius: 4px; }
+#message, #form-error, #file-error { background: #fff3e0; color: #673b00; padding: .75rem; border-radius: 4px; }
 dialog { padding: 1.5rem; border: 1px solid #aaa; border-radius: 6px; width: min(480px, calc(100% - 2rem)); max-height: calc(100% - 2rem); }
 dialog::backdrop { background: rgb(0 0 0 / .25); }
 form > label, .date-fields label { display: block; margin: 1rem 0 .4rem; }

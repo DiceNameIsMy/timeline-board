@@ -24,11 +24,26 @@ export function migrateEntry(entry) {
 }
 
 function readRecord(raw, version, convert) {
-  const record = JSON.parse(raw);
+  const record = JSON.parse(raw.replace(/^\uFEFF/, ''));
   if (!record || record.version !== version || !Array.isArray(record.entries)) throw new Error('Unsupported data.');
+  if (record.format !== undefined && record.format !== 'timeline-board') throw new Error('This file belongs to another application.');
   const entries = record.entries.map(convert);
   if (new Set(entries.map(entry => entry.id)).size !== entries.length) throw new Error('Duplicate IDs.');
   return entries;
+}
+
+/** Validate the complete file before any UI state or saved data can be replaced. */
+export function parseEntriesFile(raw) {
+  const record = JSON.parse(raw.replace(/^\uFEFF/, ''));
+  if (record?.version === 1) return readRecord(raw, 1, migrateEntry);
+  return readRecord(raw, 2, validateEntry);
+}
+
+/** A portable, versioned file with all supported entry fields and stable IDs. */
+export function serializeEntriesFile(entries) {
+  const validated = entries.map(validateEntry);
+  if (new Set(validated.map(entry => entry.id)).size !== validated.length) throw new Error('Duplicate IDs.');
+  return `${JSON.stringify({ format: 'timeline-board', version: 2, entries: validated }, null, 2)}\n`;
 }
 
 /** A failed read blocks writes. An invalid v2 record never falls back to older data. */
