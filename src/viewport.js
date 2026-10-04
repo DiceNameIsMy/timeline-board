@@ -40,5 +40,11 @@ export function scrollViewStart(origin, scrollLeft, span, width, padding = 24) {
 /** Move by calendar months while retaining the fractional day from scrolling. */
 export function shiftViewStart(start, months, span) {
   const day = Math.floor(start);
-  return clampViewStart(toDay(shiftMonths(fromDay(day), months)) + start - day, span);
+  const date = fromDay(day);
+  const shifted = toDay(shiftMonths(date, months)) + start - day;
+  const monthIndex = Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7)) - 1 + months;
+  // A step beyond the calendar reaches its endpoint, rather than retaining the day.
+  if (monthIndex < 12) return MIN_DAY;
+  if (monthIndex > 9999 * 12 + 11) return MAX_DAY - span;
+  return clampViewStart(shifted, span);
 }

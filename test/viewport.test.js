@@ -60,6 +60,41 @@ test('month navigation retains fractional positions and clamps month-end dates',
   close(shiftViewStart(toDay('2024-01-31') + 0.25, 1, 92), toDay('2024-02-29') + 0.25);
 });
 
+test('previous and next outlook steps move by 1, 3, or 6 calendar months and preserve zoom', () => {
+  for (const [months, previousDate, nextDate] of [
+    [1, '2026-09-04', '2026-11-04'],
+    [3, '2026-07-04', '2027-01-04'],
+    [6, '2026-04-04', '2027-04-04'],
+  ]) {
+    const span = outlookDays(start, months);
+    for (const [direction, expected] of [[-1, previousDate], [1, nextDate]]) {
+      const nextStart = shiftViewStart(start + 0.25, direction * months, span);
+      close(nextStart, toDay(expected) + 0.25);
+      const range = viewportRange(nextStart, span);
+      assert.equal(range.end - range.start, span);
+      close(shiftViewStart(nextStart, -direction * months, span), start + 0.25);
+    }
+  }
+});
+
+test('outlook steps clamp month ends and stop at both calendar bounds', () => {
+  for (const [months, previousDate, nextDate] of [
+    [1, '2023-12-31', '2024-02-29'],
+    [3, '2023-10-31', '2024-04-30'],
+    [6, '2023-07-31', '2024-07-31'],
+  ]) {
+    const day = toDay('2024-01-31');
+    const span = outlookDays(day, months);
+    assert.equal(shiftViewStart(day, -months, span), toDay(previousDate));
+    assert.equal(shiftViewStart(day, months, span), toDay(nextDate));
+    assert.equal(shiftViewStart(MIN_DAY, -months, span), MIN_DAY);
+    assert.equal(shiftViewStart(MAX_DAY - span, months, span), MAX_DAY - span);
+    assert.equal(shiftViewStart(MIN_DAY + 1, -months, span), MIN_DAY);
+    assert.equal(shiftViewStart(MAX_DAY - span - 1, months, span), MAX_DAY - span);
+  }
+  assert.equal(shiftViewStart(toDay('0001-02-20'), -3, 92), MIN_DAY);
+});
+
 test('today alignment and left anchor survive zoom and viewport resize', () => {
   for (const months of [1, 3, 6]) for (const width of [280, 1400]) {
     const span = outlookDays(start, months);

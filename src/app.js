@@ -54,8 +54,12 @@ function render() {
   get('empty').hidden = visible.length !== 0;
   get('empty-text').textContent = entries.length === 0 ? 'Your timeline is empty.' : 'No entries in this view. Scroll to another date or show completed tasks.';
   get('empty-add').textContent = entries.length === 0 ? 'Add your first entry' : 'Add entry';
-  get('previous').disabled = shiftViewStart(viewStart, -1, span) === viewStart;
-  get('next').disabled = shiftViewStart(viewStart, 1, span) === viewStart;
+  const months = Number(horizon.value);
+  for (const [id, direction] of [['previous', -1], ['next', 1]]) {
+    const button = get(id);
+    button.disabled = shiftViewStart(viewStart, direction * months, span) === viewStart;
+    button.setAttribute('aria-label', `${direction < 0 ? 'Previous' : 'Next'} ${months} ${months === 1 ? 'month' : 'months'}`);
+  }
 }
 
 function syncFields() {
@@ -192,7 +196,7 @@ get('today').addEventListener('click', () => {
 for (const [id, amount] of [['previous', -1], ['next', 1]]) {
   get(id).addEventListener('click', () => {
     readScrollPosition();
-    moveTo(shiftViewStart(viewStart, amount, span));
+    moveTo(shiftViewStart(viewStart, amount * Number(horizon.value), span));
   });
 }
 horizon.addEventListener('change', () => {
