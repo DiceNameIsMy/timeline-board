@@ -4,6 +4,8 @@ A personal 1–6 month outlook for project submissions, travel, and important ev
 
 Built with HTML, CSS, and plain JavaScript modules. No framework, runtime dependencies, installation, or build step.
 
+See [PLANS.md](PLANS.md) for the development direction, UX ideas, and open design questions.
+
 ## Run
 
 ```sh
