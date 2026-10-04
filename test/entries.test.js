@@ -33,4 +33,5 @@ test('malformed details block saved data instead of silently dropping it', () =>
 test('plain text notes expose only distinct HTTP(S) links', () => {
   assert.deepEqual(descriptionLinks('See https://example.org/a, and https://example.org/a.\nhttp://example.org/b'), ['https://example.org/a', 'http://example.org/b']);
   assert.deepEqual(descriptionLinks('<script>alert(1)</script> javascript:alert(1) file:///tmp/a https://'), []);
+  assert.deepEqual(descriptionLinks('Read (https://example.org/notes). Or https://example.org/a(b) and http://[::1]/'), ['https://example.org/notes', 'https://example.org/a(b)', 'http://[::1]/']);
 });

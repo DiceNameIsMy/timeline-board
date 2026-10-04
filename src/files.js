@@ -14,6 +14,7 @@ export function setupFiles({ getEntries, replaceEntries, onError }) {
   const buttons = [get('open-file'), get('export-file'), get('save-file')];
   let handle = null;
   let fileName = null;
+  let downloaded = false;
   let revision = 0;
   let savedRevision = null;
   let busy = false;
@@ -24,8 +25,9 @@ export function setupFiles({ getEntries, replaceEntries, onError }) {
 
   function refresh() {
     const unsaved = savedRevision !== null && savedRevision !== revision;
+    const copyStatus = unsaved ? 'changes since last file copy' : downloaded ? 'JSON download requested' : 'opened file matches this timeline';
     status.textContent = fileName
-      ? `${fileName} · ${unsaved ? 'unsaved file changes' : 'file matches this timeline'}${handle ? '' : ' · use Export JSON for a new copy'}`
+      ? `${fileName} · ${handle ? (unsaved ? 'unsaved file changes' : 'file matches this timeline') : copyStatus}${handle ? '' : ' · use Export JSON for a new copy'}`
       : 'Browser copy only · save a JSON file for a durable copy.';
     for (const button of buttons) button.disabled = busy || (blocked && button.id !== 'open-file');
   }
@@ -53,6 +55,7 @@ export function setupFiles({ getEntries, replaceEntries, onError }) {
     replaceEntries(imported);
     handle = nextHandle;
     fileName = file.name;
+    downloaded = false;
     savedRevision = revision;
   }
 
@@ -93,7 +96,7 @@ export function setupFiles({ getEntries, replaceEntries, onError }) {
       link.download = fileName ?? 'timeline.json';
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      if (!handle) { fileName = link.download; savedRevision = revision; }
+      if (!handle) { fileName = link.download; downloaded = true; savedRevision = revision; }
       onError(null);
       refresh();
     } catch (error) { onError(`JSON export failed: ${error.message}`); }

@@ -1,6 +1,6 @@
 # Project plans
 
-Living backlog for ideas, agreed direction, and unresolved design questions. Entries here are plans, not descriptions of implemented behavior. Update this document as decisions are made and work lands.
+Living record of ideas, decisions, delivered milestones, and remaining checks. The README describes current behavior; this document explains the direction and tracks future work.
 
 ## Product direction
 
@@ -20,15 +20,15 @@ Status: first implementation verified in desktop Chromium and at a narrow viewpo
 
 Current date labels are irregular and the year placement feels awkward. The viewport needs visual separation by month and regular week separators to help estimate time and plan work. This concerns the time scale and background, rather than labels inside entry cards.
 
-### Candidate design
+### Original candidate design
 
 - Treat a day as the smallest calendar unit, with weeks, months, and years providing larger context.
 - Show week separators at every Monday, seven days apart, with corresponding date labels.
 - Give consecutive months alternating white and subtly darker backgrounds. Each month forms a proportional rectangular band covering its days.
 - Place the month name inside the top-left corner of its band.
-- Present the year separately; its location and treatment remain undecided.
+- Present the year separately; its location was initially undecided.
 
-This is one possible solution. Alternative designs are welcome if they provide clear month boundaries and a regular weekly rhythm.
+The initial implementation follows this idea with the decisions below. Alternative designs remain welcome if they provide clear month boundaries and a regular weekly rhythm.
 
 ### Initial design decisions
 
@@ -40,11 +40,11 @@ This is one possible solution. Alternative designs are welcome if they provide c
 
 ### Questions for future refinement
 
-- How far should month backgrounds and week separators extend vertically?
-- Where should the year appear, especially when the viewport crosses a year boundary?
-- How should a partially visible month's name remain readable while scrolling?
-- How should weekly labels behave when seven-day spacing is too narrow for readable text? Preserve the weekly rhythm even if label density must change.
-- How should the scale, Today marker, interval rails, and connectors coexist without obscuring one another?
+- Are whole-height month bands helpful or too prominent in daily use?
+- Is year context in the heading sufficient when scrolling across a year boundary?
+- Is hiding nearly clipped month labels preferable to abbreviating them further?
+- Is the regular weekly rhythm clear enough at six months on a small screen?
+- Are the Today marker, interval rails, and connectors easy to follow with five overlaps?
 
 ### Validation targets
 
@@ -62,18 +62,29 @@ Verified milestones:
 - Isolated browser regression harness with fixed dates, measured collisions, and desktop/mobile screenshots.
 - Direct card completion and keyboard adding, date-ordered selection, editing, saving, outlook navigation, and help. Completion focuses a nearby visible card; shortcuts do not intercept typing.
 - Plain-text descriptions and HTTP(S) links in the editor, optional category labels, and six named colors. Shared entry validation now lives separately from storage. Existing v2 records remain valid.
-- Complete JSON download/upload, validated replacement, browser-save retry, and recovery that preserves malformed records. Native file opening/saving is implemented with tab-scoped handles and explicit saves; its write lifecycle is browser-tested with a mocked picker.
+- Complete JSON download/upload, validated replacement, browser-save retry, and recovery that preserves malformed records. Native file opening/saving is implemented with tab-scoped handles and explicit saves; its read/write lifecycle is tested with a real browser filesystem handle and mocked OS pickers.
+- Additional interaction checks cover mouse panning from cards, focus through scrolling/resizing, upload/download fallback, Chromium-emulated touch scrolling, and completion focus in empty views.
 
-The following sequence is a starting point, not a fixed schedule. Time readability above is an explicit UX priority to consider alongside these items.
+### Delivery status
 
-1. Establish a repeatable browser verification workflow with deterministic sample data, including add/edit/complete/reload, keyboard focus, and narrow screens.
-2. JSON export/import and native file opening/repeated saving are implemented. Browser storage remains an automatic working copy. Files save explicitly; native OS picker permissions still need a manual check on the user's browser.
-3. Add quick task completion without opening the editor, with predictable focus after hidden completed tasks disappear. Use separate edit and completion controls rather than nesting a checkbox in a button.
-4. Keyboard minimum is implemented: N adds, J/K selects, Enter edits, X completes, 1/3/6 changes outlook, Page Up/Down navigates, T returns to today, and ? opens help. Ctrl/Cmd+Enter saves in the editor. Review these conventions after real use.
-5. Descriptions and links are implemented in the editor. Structured checklists remain a possible later addition; plain text already supports informal lists.
-6. Optional category labels and colors are implemented independently of event/task kind. Review the palette after real use.
-7. Make small structural improvements as needed: separate rendering from geometry, document interfaces, and extract growing interaction responsibilities from app.js.
-8. Date dragging is deliberately deferred until real use of the keyboard/editor workflow. The current drag gesture pans the timeline. A future prototype should use explicit handles and define interval movement before implementation.
+| Work | Status |
+| --- | --- |
+| Month separation and Monday weeks | Implemented and verified |
+| Repeatable browser checks | Implemented; two isolated Playwright suites |
+| JSON files and browser recovery | Implemented and verified; OS picker permission check remains manual |
+| Direct task completion | Implemented with predictable focus |
+| Keyboard minimum | Implemented with help: N, J/K, Enter, X, 1/3/6, Page Up/Down, T, ?, Ctrl/Cmd+Enter |
+| Descriptions and links | Implemented in the editor |
+| Categories and colors | Implemented independently of event/task kind |
+| Structural improvements | Renderer, entry schema, keyboard resolution, and file interactions extracted into modules |
+
+### Optional follow-ups after actual use
+
+- Review the keyboard conventions, month/week presentation, and palette with real planning data.
+- Date dragging is deliberately deferred. The current drag gesture pans the timeline; a future prototype should use explicit handles and define interval movement before implementation.
+- Structured checklists remain optional; plain-text notes already support informal lists.
+- Extract more editor/navigation coordination only if app.js becomes difficult to change reliably.
+- Consider a standalone browser runner if running the existing MCP checks becomes inconvenient.
 
 ## Decisions and remaining checks
 
@@ -81,8 +92,8 @@ The following sequence is a starting point, not a fixed schedule. Time readabili
 - Use JSON as the durable local format, with browser storage as an automatic working copy. No CSV or remote storage is needed yet.
 - Keep keyboard conventions discoverable in the Keys dialog and avoid shortcuts in typing controls. Review conventions after actual use rather than adding more speculative commands.
 - Keep descriptions plain text with HTTP(S) links. Structured checklists and richer text formatting remain optional future ideas.
-- Manually verify real native file picker permissions and file overwriting; automated browser tests mock that OS boundary.
-- Check real touch hardware and additional browser engines when available. Narrow-screen Chromium checks do not substitute for those checks.
+- Manually verify real native file picker permissions and file overwriting: open a temporary local JSON file, edit a deadline and notes, save, then reopen it and verify the contents. Automated tests exercise real browser filesystem streams but mock the OS picker boundary.
+- Check real touch hardware and additional browser engines when available. Chromium-emulated touch and narrow-screen checks do not substitute for those checks.
 
 ## Development and agent workflow
 
@@ -90,11 +101,11 @@ The following sequence is a starting point, not a fixed schedule. Time readabili
 - Discuss unspecified product interactions, storage ownership, and schema compatibility through concrete proposals.
 - Report tests and browser checks performed, including checks that could not be run.
 - Keep date arithmetic and layout calculations independently testable, and preserve legacy storage compatibility.
-- Reconsider allowing agents to commit verified changes once browser checks and interaction conventions are established.
-- Update AGENTS.md with the viewport module, product boundaries, and the browser verification workflow when that workflow exists.
+- Milestone commits are authorized for this implementation. Broader future autonomy can be revisited after actual use.
+- AGENTS.md now documents the module map, product boundaries, storage/file invariants, and browser verification workflow.
 
 ## Longer-term architecture
 
-Retain pure date, viewport, and layout calculations. As features require it, separate the entry schema from persistence, rendering from geometry, and editor/keyboard interactions from application coordination. Browser storage and local files can then share validation through separate persistence adapters.
+Retain pure date, viewport, and layout calculations. The entry schema is now separate from persistence, rendering is separate from geometry, and keyboard resolution and file interactions have their own modules. Browser storage and local files share validation. Keep app.js as the coordinator and extract editor/navigation responsibilities as further features justify it.
 
 Reconsider a framework if coordinating UI state becomes persistently difficult. Revisit other product features only when actual use demonstrates their value.

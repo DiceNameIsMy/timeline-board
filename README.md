@@ -43,6 +43,8 @@ Press **N** to add; **J/K** to select next/previous entries in date order; **Ent
 
 Use **Export JSON** to download a complete local copy, including descriptions, categories, colors, IDs, and completed tasks. **Open JSON** validates an entire file and asks before replacing the current timeline. Invalid files and canceled imports leave entries unchanged. Existing v2 records and legacy v1 files can be opened.
 
+Export starts a browser download; verify the downloaded file in your Downloads folder. The app cannot confirm whether you accepted or canceled the browser's download.
+
 On browsers with native file access, **Open JSON** can connect to a file and **Save file** writes back to it. Saving without a connected file asks where to save. File access lasts for this tab; reopen the file after reloading. Other browsers use ordinary upload/download. Files save explicitly, while the browser copy saves automatically. The file status shows unsaved changes; closing/reloading after changes to an opened or exported file requests confirmation. Native picker availability depends on the browser and secure-context support.
 
 Portable exports contain `{ "format": "timeline-board", "version": 2, "entries": [...] }`. Keep these files somewhere durable. CSV, GitHub storage, and synchronization are not implemented.

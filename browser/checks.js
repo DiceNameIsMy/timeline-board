@@ -108,6 +108,7 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   const beforeExport = await page.evaluate(() => JSON.parse(localStorage.getItem('timeline-board-v2')).entries);
   const downloading = page.waitForEvent('download');
   await page.locator('#export-file').click();
+  assert((await page.locator('#file-status').textContent()).includes('download requested'), 'Download status must not claim the OS has saved the file');
   const download = await downloading;
   const exportedPath = `${artifactDirectory}/timeline-export.json`;
   await download.saveAs(exportedPath);
@@ -136,9 +137,12 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   await page.waitForFunction(() => !document.querySelector('#open-file').disabled);
   assert(await page.locator('.entry-box').count() === beforeExport.length, 'Canceled import must preserve entries');
   results.push('Actual JSON export/import round-trip, invalid import and cancellation');
-  // Native picker interaction needs a human. Verify the write lifecycle and
-  // handle reuse with browser-side handles, without displaying an unattended OS picker.
-  await page.evaluate(() => {
+  // Mock only the OS picker: use a real browser filesystem handle and writable
+  // stream in origin-private storage to exercise native file reads and writes.
+  await page.evaluate(async () => {
+    const root = await navigator.storage.getDirectory();
+    const diskHandle = await root.getFileHandle('linked-timeline.json', { create: true });
+    window.__diskHandle = diskHandle;
     window.__fileWrites = [];
     window.__pickerCalls = 0;
     window.showSaveFilePicker = async () => {
@@ -147,7 +151,12 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
         name: 'linked-timeline.json',
         createWritable: async () => {
           if (window.__denyFileWrite) throw new Error('Permission denied');
-          return { write: async text => window.__fileWrites.push(text), close: async () => {}, abort: async () => {} };
+          const stream = await diskHandle.createWritable();
+          return {
+            write: async text => { window.__fileWrites.push(text); await stream.write(text); },
+            close: async () => stream.close(),
+            abort: async () => stream.abort(),
+          };
         },
       };
     };
@@ -167,7 +176,14 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   await page.waitForFunction(() => document.querySelector('#file-status').textContent.includes('file matches'));
   assert(await page.evaluate(() => window.__pickerCalls) === 1, 'Repeated saves must reuse the selected handle');
   assert(await page.evaluate(() => JSON.parse(window.__fileWrites.at(-1)).entries.find(entry => entry.id === 'fixture-1').completed), 'Repeated save must include new edits');
-  results.push('Native file save lifecycle, handle reuse, dirty state and write failure (picker mocked)');
+  const diskEntries = await page.evaluate(async () => JSON.parse(await (await window.__diskHandle.getFile()).text()).entries);
+  assert(diskEntries.find(entry => entry.id === 'fixture-1').completed, 'Actual browser filesystem file must contain the saved edits');
+  await page.evaluate(() => { window.showOpenFilePicker = async () => [window.__diskHandle]; });
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#open-file').click();
+  await page.waitForFunction(() => !document.querySelector('#open-file').disabled);
+  assert(JSON.stringify(await page.evaluate(() => JSON.parse(localStorage.getItem('timeline-board-v2')).entries)) === JSON.stringify(diskEntries), 'Opening an actual file handle must restore its complete contents');
+  results.push('Real browser filesystem read/write, handle reuse, dirty state and write failure (OS pickers mocked)');
   await page.evaluate(() => {
     window.__originalSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key, value) {

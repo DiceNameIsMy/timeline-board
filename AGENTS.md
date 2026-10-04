@@ -41,7 +41,7 @@ Use `node:test` and `node:assert/strict`. Name files `test/<module>.test.js` and
 
 For UI changes, check add/edit/delete, completion filtering, reload persistence, navigation, narrow screens, and keyboard focus. Report browser checks that could not be performed.
 
-Use the isolated Playwright checks in `browser/checks.js` as described in `browser/README.md`. Never seed fixtures or clear storage in a user's browser profile. Inspect screenshots for visual changes and report touch checks separately from desktop browser checks.
+Use the isolated Playwright suites in `browser/checks.js` and `browser/navigation-checks.js` as described in `browser/README.md`. Never seed fixtures or clear storage in a user's browser profile. Inspect screenshots for visual changes and distinguish emulated touch checks from real-device checks.
 
 ## Commit & Pull Request Guidelines
 
@@ -51,4 +51,4 @@ History uses descriptive imperative subjects, such as “Add month-based timelin
 
 Store calendar dates as `YYYY-MM-DD`; preserve timezone-independent spacing. New data uses `timeline-board-v2`. Never overwrite the legacy `timeline-board` record during migration or silently replace malformed saved data.
 
-Descriptions, category labels, and named colors are optional v2 fields. File exports carry `format: 'timeline-board'` and version 2. Validate entire imports before replacement; opening a valid file after a failed browser read must preserve the unreadable browser record. Distinguish actual download/upload checks from mocked native picker checks.
+Descriptions, category labels, and named colors are optional v2 fields. File exports carry `format: 'timeline-board'` and version 2. Validate entire imports before replacement; opening a valid file after a failed browser read must preserve the unreadable browser record. Distinguish actual download/upload and browser filesystem stream checks from OS picker/permission checks.
