@@ -27,7 +27,7 @@ export function visibleEntries(entries, range, showCompleted) {
 }
 
 /**
- * Pure geometry: independent label rows and interval rails on each side of a single axis.
+ * Pure geometry: shared label rows and interval rails below a fixed-height axis.
  * Boxes can move; all date markers retain their proportional positions.
  * @param {import('./storage.js').Entry[]} entries
  */
@@ -50,49 +50,40 @@ export function layoutEntries(entries, range, width, sizes = new Map(), unit = 1
       before: start < range.start, after: end > range.end,
       left: Math.max(padding, Math.min(x - boxWidth / 2, width - padding - boxWidth)),
       boxWidth, boxHeight: sizes.get(entry.id) ?? 80 * unit,
-      side: entry.kind === 'event' ? 'above' : 'below',
+      side: 'below',
     };
   });
-  const sides = {};
-  for (const side of ['above', 'below']) {
-    const group = items.filter(item => item.side === side);
-    const railEnds = [];
-    for (const item of group.filter(item => item.start !== item.end).sort((a, b) => a.x1 - b.x1 || a.entry.id.localeCompare(b.entry.id))) {
-      let rail = railEnds.findIndex(end => end + 10 * unit < item.x1);
-      if (rail === -1) rail = railEnds.length;
-      railEnds[rail] = item.x2;
-      item.rail = rail;
-    }
-    const rowEnds = [];
-    const heights = [];
-    for (const item of group.sort((a, b) => a.x - b.x || a.entry.id.localeCompare(b.entry.id))) {
-      let row = rowEnds.findIndex(end => end + gap <= item.left);
-      if (row === -1) row = rowEnds.length;
-      rowEnds[row] = item.left + boxWidth;
-      heights[row] = Math.max(heights[row] ?? 0, item.boxHeight);
-      item.row = row;
-    }
-    sides[side] = {
-      heights, band: railEnds.length * 8 * unit,
-      total: heights.reduce((sum, height) => sum + height + gap, 0),
-    };
+  const railEnds = [];
+  for (const item of items.filter(item => item.start !== item.end).sort((a, b) => a.x1 - b.x1 || a.entry.id.localeCompare(b.entry.id))) {
+    let rail = railEnds.findIndex(end => end + 10 * unit < item.x1);
+    if (rail === -1) rail = railEnds.length;
+    railEnds[rail] = item.x2;
+    item.rail = rail;
   }
-  const axisY = padding + Math.max(60 * unit, sides.above.total + sides.above.band + 28 * unit);
+  const rowEnds = [];
+  const heights = [];
+  for (const item of [...items].sort((a, b) => a.x - b.x || a.entry.id.localeCompare(b.entry.id))) {
+    let row = rowEnds.findIndex(end => end + gap <= item.left);
+    if (row === -1) row = rowEnds.length;
+    rowEnds[row] = item.left + boxWidth;
+    heights[row] = Math.max(heights[row] ?? 0, item.boxHeight);
+    item.row = row;
+  }
+  const band = railEnds.length * 8 * unit;
+  const total = heights.reduce((sum, height) => sum + height + gap, 0);
+  const axisY = padding + 60 * unit;
   for (const item of items) {
-    const side = sides[item.side];
-    const preceding = side.heights.slice(0, item.row).reduce((sum, height) => sum + height + gap, 0);
-    item.y = item.side === 'above'
-      ? axisY - side.band - 28 * unit - preceding - item.boxHeight
-      : axisY + side.band + 72 * unit + preceding;
-    item.markerY = item.start === item.end ? axisY
-      : axisY + (item.side === 'above' ? -1 : 1) * (item.rail + 1) * 8 * unit;
-    const boxEdge = item.side === 'above' ? item.y + item.boxHeight : item.y;
+    const preceding = heights.slice(0, item.row).reduce((sum, height) => sum + height + gap, 0);
+    item.y = axisY + band + 72 * unit + preceding;
+    // Interval rails stay below the axis; date labels stay above it.
+    item.markerY = item.start === item.end ? axisY : axisY + 40 * unit + (item.rail + 1) * 8 * unit;
+    const boxEdge = item.y;
     // One connector per box; its slight diagonal never forces date anchors to move.
-    item.connector = `M ${item.x} ${axisY} L ${item.x} ${item.markerY} L ${item.x} ${(item.markerY + boxEdge) / 2} L ${item.left + boxWidth / 2} ${boxEdge}`;
+    item.connector = `M ${item.x} ${item.markerY} L ${item.x} ${(item.markerY + boxEdge) / 2} L ${item.left + boxWidth / 2} ${boxEdge}`;
   }
   return {
-    items, axisY, padding, tickY: axisY + sides.below.band + 24 * unit,
-    height: Math.max(240 * unit, axisY + sides.below.band + 72 * unit + sides.below.total + padding),
+    items, axisY, padding, tickY: axisY - 12 * unit,
+    height: Math.max(240 * unit, axisY + band + 72 * unit + total + padding),
     boxWidth,
   };
 }
@@ -181,6 +172,13 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     button.style.left = `${item.left}px`;
     button.style.top = `${item.y}px`;
     const group = svgElement('g', { class: `entry-geometry ${item.entry.kind}${item.entry.completed ? ' complete' : ''}` });
+    if (item.start !== item.end) {
+      for (const x of [item.x1, item.x2]) {
+        group.append(svgElement('line', {
+          x1: x, x2: x, y1: layout.axisY, y2: item.markerY, class: 'endpoint-guide',
+        }));
+      }
+    }
     group.append(svgElement('path', { d: item.connector, class: 'connector' }));
     if (item.start !== item.end) {
       group.append(svgElement('line', { x1: item.x1, x2: item.x2, y1: item.markerY, y2: item.markerY, class: 'interval' }));
@@ -198,19 +196,26 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     highlight();
   }
   // Draw date labels over connectors so crossing branches cannot obscure their text.
+  let previousLabelRight = -Infinity;
   for (const tick of makeTicks(range, width, layout.padding, unit)) {
     const x = dayPosition(tick.day, range, width, layout.padding);
     geometry.append(svgElement('line', { x1: x, x2: x, y1: layout.axisY - 4 * unit, y2: layout.axisY + 4 * unit, class: 'tick' }));
-    if (tick.label) geometry.append(svgElement('text', {
-      x, y: layout.tickY, class: 'tick-label',
-      'text-anchor': x > width - layout.padding - 68 * unit ? 'end' : 'start',
-    }, tick.label));
+    if (tick.label) {
+      const label = svgElement('text', {
+        x, y: layout.tickY, class: 'tick-label',
+        'text-anchor': x > width - layout.padding - 68 * unit ? 'end' : 'start',
+      }, tick.label);
+      geometry.append(label);
+      const bounds = label.getBBox();
+      if (bounds.x < previousLabelRight + 12 * unit) label.remove();
+      else previousLabelRight = bounds.x + bounds.width;
+    }
   }
   if (today >= range.start && today <= range.end) {
     const x = dayPosition(today, range, width, layout.padding);
     const marker = svgElement('g', { class: 'today-marker' });
-    marker.append(svgElement('line', { x1: x, x2: x, y1: layout.axisY - 18 * unit, y2: layout.axisY + 14 * unit }));
-    marker.append(svgElement('text', { x, y: layout.axisY - 24 * unit, 'text-anchor': x > width / 2 ? 'end' : 'start' }, 'Today'));
+    marker.append(svgElement('line', { x1: x, x2: x, y1: layout.axisY - 40 * unit, y2: layout.axisY + 14 * unit }));
+    marker.append(svgElement('text', { x, y: layout.axisY - 48 * unit, 'text-anchor': x > width / 2 ? 'end' : 'start' }, 'Today'));
     geometry.append(marker);
   }
   if (focusedId && !buttons.has(focusedId)) canvas.closest('[role="region"]').focus({ preventScroll: true });

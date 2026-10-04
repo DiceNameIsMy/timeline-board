@@ -97,12 +97,40 @@ test('crowded boxes never overlap, stay in bounds, and each has one direct conne
       assert.ok(item.left >= 0 && item.left + item.boxWidth <= width);
       assert.ok(item.y >= 0 && item.y + item.boxHeight <= layout.height);
       assert.equal((item.connector.match(/M /g) ?? []).length, 1);
-      assert.ok(item.connector.startsWith(`M ${item.x} ${layout.axisY} L ${item.x} ${item.markerY}`));
-      if (item.side === 'above') assert.ok(item.y + item.boxHeight < layout.axisY);
-      else assert.ok(item.y > layout.axisY);
+      assert.ok(item.connector.startsWith(`M ${item.x} ${item.markerY} L `));
+      assert.equal(item.side, 'below');
+      assert.ok(item.y > layout.axisY);
     }
     for (let a = 0; a < layout.items.length; a++) for (let b = a + 1; b < layout.items.length; b++) {
       assert.equal(overlap(layout.items[a], layout.items[b]), false);
+    }
+  }
+});
+
+test('axis and date labels stay fixed as entries enter and leave the viewport', () => {
+  const entries = [
+    event('early', '2026-10-05'),
+    ...Array.from({ length: 8 }, (_, index) => index % 2
+      ? task(`task-${index}`, '2026-11-01', '2026-10-20')
+      : event(`event-${index}`, '2026-10-20', '2026-11-10')),
+  ];
+  const sizes = new Map(entries.map((entry, index) => [entry.id, 80 + index * 20]));
+  for (const width of [280, 800, 1400]) for (const unit of [1, 2]) {
+    const empty = layoutEntries([], range, width, sizes, unit);
+    for (const date of ['2026-07-04', '2026-10-04', '2026-11-05', '2027-02-01']) {
+      const view = makeRange(date, 3);
+      const layout = layoutEntries(visibleEntries(entries, view, false), view, width, sizes, unit);
+      assert.equal(layout.axisY, empty.axisY);
+      assert.equal(layout.tickY, empty.tickY);
+      assert.ok(layout.tickY < layout.axisY);
+      assert.ok(layout.tickY > 0);
+      for (const item of layout.items) {
+        assert.ok(item.y > layout.tickY);
+        if (item.rail !== undefined) {
+          assert.ok(item.markerY > layout.tickY + 16 * unit);
+          assert.ok(item.markerY < item.y);
+        }
+      }
     }
   }
 });

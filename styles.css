@@ -52,6 +52,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .entry-geometry.event { --entry-color: #245ec7; }
 .connector { fill: none; stroke: #aaa; stroke-width: 1; }
 .interval { stroke: var(--entry-color); stroke-width: 3; }
+.endpoint-guide { stroke: var(--entry-color); stroke-width: 1; stroke-dasharray: 1 4; stroke-linecap: round; opacity: .6; }
 .marker { fill: var(--entry-color); }
 .continuation { fill: none; stroke: var(--entry-color); stroke-width: 2; }
 .highlight .connector, .highlight .interval, .highlight .continuation { stroke: var(--entry-color); stroke-width: 3; }

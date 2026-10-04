@@ -1,6 +1,6 @@
 # Timeline outlook
 
-A personal 1–6 month outlook for project submissions, travel, and important events. One horizontal time axis uses proportional calendar spacing. Dots mark single dates and thin lines show intervals; each has a box connected directly to it. Events sit above the axis and tasks below. Overlapping boxes stack vertically without shifting their dates.
+A personal 1–6 month outlook for project submissions, travel, and important events. One horizontal time axis uses proportional calendar spacing. Dots mark single dates and thin lines show intervals; each has a box connected directly to it. Events and tasks sit below a fixed-height axis, so the line stays steady while scrolling. Overlapping boxes stack vertically without shifting their dates.
 
 Built with HTML, CSS, and plain JavaScript modules. No framework, runtime dependencies, installation, or build step.
 
