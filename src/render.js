@@ -1,5 +1,6 @@
 import { toDay, formatTickDate, formatRange } from './dates.js';
 import { dayPosition, layoutEntries, makeMonths, makeTicks } from './timeline.js';
+import { ENTRY_COLORS } from './entries.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 function svgElement(tag, attributes, text) {
@@ -23,6 +24,8 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     card.className = `entry-box ${entry.kind}${entry.completed ? ' complete' : ''}`;
     card.dataset.id = entry.id;
     card.dataset.day = toDay(entry.kind === 'task' ? entry.finish : entry.start);
+    const entryColor = ENTRY_COLORS[entry.color] ?? (entry.kind === 'event' ? ENTRY_COLORS.blue : ENTRY_COLORS.slate);
+    card.style.setProperty('--entry-color', entryColor);
     card.style.width = `${initial.boxWidth}px`;
     let button = card.querySelector('.entry-edit');
     if (!button) {
@@ -36,6 +39,7 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     for (const [className, text] of [
       ['entry-title', entry.title], ['entry-date', dateLabel],
       ['entry-type', entry.kind === 'task' ? `Task${entry.completed ? ' · complete' : ' · finish ' + formatTickDate(entry.finish)}` : 'Event'],
+      ['entry-category', entry.category ?? ''],
     ]) {
       let span = button.querySelector(`.${className}`);
       if (!span) {
@@ -44,6 +48,7 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
         button.append(span);
       }
       if (span.textContent !== text) span.textContent = text;
+      span.hidden = !text;
     }
     button.onclick = () => onEdit(entry);
     let completion = card.querySelector('.entry-completion');
@@ -91,6 +96,7 @@ export function renderTimeline({ canvas, geometry, boxes, entries, range, today,
     button.style.left = `${item.left}px`;
     button.style.top = `${item.y}px`;
     const group = svgElement('g', { class: `entry-geometry ${item.entry.kind}${item.entry.completed ? ' complete' : ''}` });
+    group.style.setProperty('--entry-color', button.style.getPropertyValue('--entry-color'));
     if (item.start !== item.end) {
       for (const x of [item.x1, item.x2]) {
         group.append(svgElement('line', {

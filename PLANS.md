@@ -61,6 +61,7 @@ Verified milestones:
 - Month bands, weekly Monday separators, and year context; renderer separated from pure layout.
 - Isolated browser regression harness with fixed dates, measured collisions, and desktop/mobile screenshots.
 - Direct card completion and keyboard adding, date-ordered selection, editing, saving, outlook navigation, and help. Completion focuses a nearby visible card; shortcuts do not intercept typing.
+- Plain-text descriptions and HTTP(S) links in the editor, optional category labels, and six named colors. Shared entry validation now lives separately from storage. Existing v2 records remain valid.
 
 The following sequence is a starting point, not a fixed schedule. Time readability above is an explicit UX priority to consider alongside these items.
 
@@ -68,8 +69,8 @@ The following sequence is a starting point, not a fixed schedule. Time readabili
 2. Add versioned JSON export/import with whole-file validation and explicit replacement. Preserve current data if import fails. Consider opening and repeatedly saving a local file afterward.
 3. Add quick task completion without opening the editor, with predictable focus after hidden completed tasks disappear. Use separate edit and completion controls rather than nesting a checkbox in a button.
 4. Keyboard minimum is implemented: N adds, J/K selects, Enter edits, X completes, 1/3/6 changes outlook, Page Up/Down navigates, T returns to today, and ? opens help. Ctrl/Cmd+Enter saves in the editor. Review these conventions after real use.
-5. Add item descriptions with arbitrary text and links, shown in the details/editor. Checklists are a possible later addition.
-6. Add optional category labels and colors for distinctions such as exams, projects, and goals. Keep category separate from event/task kind.
+5. Descriptions and links are implemented in the editor. Structured checklists remain a possible later addition; plain text already supports informal lists.
+6. Optional category labels and colors are implemented independently of event/task kind. Review the palette after real use.
 7. Make small structural improvements as needed: separate rendering from geometry, document interfaces, and extract growing interaction responsibilities from app.js.
 8. Explore dragging to change dates. Resolve conflicts with timeline panning and define whether moving a task finish shifts its planned start or moving an event shifts its whole interval.
 

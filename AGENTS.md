@@ -11,6 +11,8 @@ This is a small static app using HTML, CSS, and native JavaScript modules. `inde
 - `viewport.js`: zoom, fractional scroll positions, scroll buffers, and calendar bounds.
 - `keyboard.js`: pure shortcut resolution; preserve typing and native control behavior.
 - `storage.js`: validation, versioned persistence, and legacy migration.
+- `entries.js`: shared entry schema, validation, and supported colors.
+- `notes.js`: HTTP(S) links from plain text descriptions.
 
 Tests live in `test/`. Keep calculation functions independent of the DOM so they remain easy to test.
 

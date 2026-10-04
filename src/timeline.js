@@ -10,7 +10,7 @@ export function dayPosition(day, range, width, padding = 24) {
   return padding + (day - range.start) / Math.max(1, range.end - range.start) * (width - padding * 2);
 }
 
-/** @param {import('./storage.js').Entry} entry */
+/** @param {import('./entries.js').Entry} entry */
 export function entryDates(entry) {
   return entry.kind === 'task'
     ? { start: entry.start ?? entry.finish, end: entry.finish }
@@ -29,7 +29,7 @@ export function visibleEntries(entries, range, showCompleted) {
 /**
  * Pure geometry: shared label rows and interval rails below a fixed-height axis.
  * Boxes can move; all date markers retain their proportional positions.
- * @param {import('./storage.js').Entry[]} entries
+ * @param {import('./entries.js').Entry[]} entries
  */
 export function layoutEntries(entries, range, width, sizes = new Map(), unit = 1) {
   const padding = Math.min(24 * unit, width / 10);

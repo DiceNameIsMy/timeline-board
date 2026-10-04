@@ -1,34 +1,11 @@
 import { toDay } from './dates.js';
+import { validateEntry } from './entries.js';
+
+export { validateEntry } from './entries.js';
+/** @typedef {import('./entries.js').Entry} Entry */
 
 export const LEGACY_STORAGE_KEY = 'timeline-board';
 export const STORAGE_KEY = 'timeline-board-v2';
-
-/**
- * @typedef {{id: string, title: string, kind: 'event', start: string, end: string|null}} EventEntry
- * @typedef {{id: string, title: string, kind: 'task', start: string|null, finish: string, completed: boolean}} TaskEntry
- * @typedef {EventEntry|TaskEntry} Entry
- */
-
-/** Validate form input and untrusted storage, returning only the supported fields. */
-export function validateEntry(entry) {
-  if (!entry || typeof entry.id !== 'string' || !entry.id ||
-      typeof entry.title !== 'string' || !entry.title.trim() || entry.title.length > 160) {
-    throw new Error('Enter a title of up to 160 characters.');
-  }
-  const common = { id: entry.id, title: entry.title.trim(), kind: entry.kind };
-  if (entry.kind === 'event') {
-    const start = toDay(entry.start);
-    if (entry.end !== null && toDay(entry.end) < start) throw new Error('End date must be on or after the start date.');
-    return { ...common, start: entry.start, end: entry.end };
-  }
-  if (entry.kind === 'task') {
-    const finish = toDay(entry.finish);
-    if (entry.start !== null && toDay(entry.start) > finish) throw new Error('Planned start must be on or before the finish date.');
-    if (typeof entry.completed !== 'boolean') throw new Error('Check the task completion state.');
-    return { ...common, start: entry.start, finish: entry.finish, completed: entry.completed };
-  }
-  throw new Error('Choose Event or Task.');
-}
 
 /** Convert a legacy entry without modifying its stored copy. */
 export function migrateEntry(entry) {

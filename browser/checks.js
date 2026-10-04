@@ -48,9 +48,17 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.getByRole('button', { name: /Browser regression entry.*Edit entry/ }).click();
   await page.locator('#title').fill('Edited browser entry');
+  await page.locator('#description').fill('Read https://example.org/assignment\n<script>plain text</script>');
+  await page.locator('#category').fill('Exam');
+  await page.locator('#color').selectOption('rose');
+  assert(await page.locator('#description-links a').getAttribute('href') === 'https://example.org/assignment', 'Notes must expose an HTTP link');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.reload();
   await page.getByRole('button', { name: /Edited browser entry.*Edit entry/ }).waitFor();
+  const details = await page.evaluate(() => JSON.parse(localStorage.getItem('timeline-board-v2')).entries.find(entry => entry.title === 'Edited browser entry'));
+  assert(details.category === 'Exam' && details.color === 'rose' && details.description.includes('<script>plain text</script>'), 'Details must survive reload as plain data');
+  assert(!(await page.locator('#boxes').innerText()).includes('https://'), 'Descriptions must stay outside timeline cards');
+  results.push('Descriptions, safe links, categories and colors survive reload');
   results.push('Add, edit, reload persistence');
   await page.locator('#timeline').focus();
   await page.keyboard.press('ArrowDown');
@@ -61,6 +69,10 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   assert(await page.locator('#title').inputValue() === 'Edited browser entryn', 'N must type normally in the editor');
   await page.locator('#title').fill('Edited browser entry');
   await page.locator('#date').fill('2026-10-16');
+  await page.locator('#other-date').fill('2026-10-18');
+  await page.locator('#kind').selectOption('task');
+  assert(await page.locator('#date').inputValue() === '2026-10-18' && await page.locator('#other-date').inputValue() === '2026-10-16', 'Changing kind must preserve interval endpoints');
+  await page.locator('#kind').selectOption('event');
   await page.keyboard.press('Control+Enter');
   assert(!await page.locator('#editor').evaluate(element => element.open), 'Ctrl+Enter must save and close');
   assert(await page.locator('.entry-edit:focus').count() === 1, 'Saving must return focus to the card');
@@ -89,5 +101,13 @@ async (page, { baseUrl = 'http://127.0.0.1:5173', artifactDirectory = 'browser-a
   assert(await page.locator('#editor').evaluate(element => element.open), 'N must add an entry');
   await page.keyboard.press('Escape');
   results.push('Keyboard selection/edit/save/zoom/navigation/help, typing protection, quick completion and focus');
+  await page.getByRole('button', { name: /Edited browser entry.*Edit entry/ }).click();
+  assert(await page.locator('#description').inputValue() === details.description, 'Editor must restore notes');
+  await page.screenshot({ path: `${artifactDirectory}/entry-details.png`, fullPage: true });
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#delete').click();
+  assert(await page.getByRole('button', { name: /Edited browser entry.*Edit entry/ }).count() === 0, 'Delete must remove the entry');
+  assert(await page.locator('#add').evaluate(element => element === document.activeElement), 'Delete must return focus to Add');
+  results.push('Task/event interval switching, details editing, deletion and focus');
   return results;
 }

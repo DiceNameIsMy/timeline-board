@@ -1,5 +1,7 @@
 import { toDay, fromDay, todayDate, formatRange } from './dates.js';
-import { loadEntries, saveEntries, validateEntry } from './storage.js';
+import { loadEntries, saveEntries } from './storage.js';
+import { validateEntry } from './entries.js';
+import { descriptionLinks } from './notes.js';
 import { visibleEntries } from './timeline.js';
 import { renderTimeline } from './render.js';
 import { outlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart } from './viewport.js';
@@ -16,6 +18,9 @@ const kind = get('kind');
 const date = get('date');
 const otherDate = get('other-date');
 const completed = get('completed');
+const description = get('description');
+const category = get('category');
+const color = get('color');
 const message = get('message');
 const formError = get('form-error');
 const horizon = get('horizon');
@@ -107,6 +112,10 @@ function openEditor(entry = null) {
   date.value = entry ? (entry.kind === 'task' ? entry.finish : entry.start) : todayDate();
   otherDate.value = entry ? (entry.kind === 'task' ? entry.start ?? '' : entry.end ?? '') : '';
   completed.checked = entry?.completed ?? false;
+  description.value = entry?.description ?? '';
+  category.value = entry?.category ?? '';
+  color.value = entry?.color ?? '';
+  updateDescriptionLinks();
   get('editor-heading').textContent = entry ? 'Edit entry' : 'Add entry';
   get('delete').hidden = !entry;
   formError.hidden = true;
@@ -114,6 +123,20 @@ function openEditor(entry = null) {
   editor.showModal();
   title.focus();
 }
+
+function updateDescriptionLinks() {
+  const links = get('description-links');
+  links.replaceChildren();
+  for (const url of descriptionLinks(description.value)) {
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.textContent = url;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    links.append(anchor);
+  }
+}
+description.addEventListener('input', updateDescriptionLinks);
 
 function commit(nextEntries, entry = null) {
   readScrollPosition();
@@ -157,7 +180,7 @@ form.addEventListener('submit', event => {
   event.preventDefault();
   if (loaded.blocked) return;
   try {
-    const common = { id: editingId ?? crypto.randomUUID(), title: title.value, kind: kind.value };
+    const common = { id: editingId ?? crypto.randomUUID(), title: title.value, kind: kind.value, description: description.value, category: category.value, color: color.value };
     const entry = validateEntry(kind.value === 'task'
       ? { ...common, finish: date.value, start: otherDate.value || null, completed: completed.checked }
       : { ...common, start: date.value, end: otherDate.value || null });

@@ -77,6 +77,27 @@
         <label id="completed-label" class="checkbox" hidden>
           <input id="completed" name="completed" type="checkbox"> Task complete
         </label>
+        <div class="date-fields">
+          <div>
+            <label for="category">Category (optional)</label>
+            <input id="category" name="category" maxlength="40" placeholder="Exam, project, goal…">
+          </div>
+          <div>
+            <label for="color">Color</label>
+            <select id="color" name="color">
+              <option value="">Default</option>
+              <option value="blue">Blue</option>
+              <option value="green">Green</option>
+              <option value="amber">Amber</option>
+              <option value="rose">Rose</option>
+              <option value="violet">Violet</option>
+              <option value="slate">Gray</option>
+            </select>
+          </div>
+        </div>
+        <label for="description">Description (optional)</label>
+        <textarea id="description" name="description" rows="4" maxlength="20000" placeholder="Notes and links, kept outside the timeline"></textarea>
+        <div id="description-links" aria-label="Links in description"></div>
         <p id="form-error" role="alert" hidden></p>
         <div class="form-actions">
           <button id="delete" type="button" class="danger" hidden>Delete</button>

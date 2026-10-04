@@ -24,6 +24,8 @@ Open <http://localhost:5173>. `npm start` runs the same command. JavaScript modu
 - Completed tasks are hidden unless **Show completed** is checked.
 - Intervals extending beyond the outlook have continuation marks and retain their full dates in the box.
 - Saving an entry whose event start or task finish is outside the outlook moves the view to that date.
+- Add optional category labels (such as Exam or Project) and choose a color for cards and their connections. Categories are independent of Event/Task.
+- Keep notes and links in the description, visible only in the editor. HTTP(S) links appear as clickable links below the plain-text notes; HTML and Markdown are not rendered.
 
 Dates have day-level precision, without times of day. Interval endpoints are positioned at their calendar dates; same-day intervals appear as dots. On a small screen the selected time span still fits; crowded labels use additional vertical space.
 
@@ -45,6 +47,8 @@ The new view saves `{ "version": 2, "entries": [...] }` under `timeline-board-v2
 
 - Events: `start` (date), `end` (date or `null`).
 - Tasks: `finish` (date), `start` (date or `null`), `completed` (boolean).
+
+Both kinds support optional `description` (plain text, up to 20,000 characters), `category` (up to 40 characters), and `color` (`blue`, `green`, `amber`, `rose`, `violet`, or `slate`). These are additive v2 fields; existing records still load. Earlier app revisions can discard these new fields when saving, so retain a backup before using an older revision with detailed entries.
 
 Dates are `YYYY-MM-DD`. When no v2 record exists, the app reads the original `timeline-board` v1 record and converts deadlines to tasks, using the old end date as finish when present. The original record is never overwritten, so it remains available to the previous view in commit `016d4e8`. The two views' subsequent edits are independent.
 
@@ -70,6 +74,8 @@ See [browser/README.md](browser/README.md) for deterministic Playwright checks a
 - `src/timeline.js`: calendar bands, Monday separators, label collisions, and interval rails.
 - `src/render.js`: SVG rendering and measured HTML cards.
 - `src/storage.js`: validated JSDoc entry types, legacy migration, and persistence.
+- `src/entries.js`: entry types, validation, and supported colors.
+- `src/notes.js`: safe HTTP(S) link extraction from plain text.
 - `src/app.js`: state, native forms, and navigation.
 - `src/viewport.js`: zoom, fractional date positions, scroll buffers, and calendar bounds.
 - `src/keyboard.js`: context-aware shortcut resolution, independent of the DOM.
