@@ -14,7 +14,7 @@ Living backlog for ideas, agreed direction, and unresolved design questions. Ent
 
 ## Time readability: month separation and regular weeks
 
-Status: recorded idea; visual design still open.
+Status: first implementation verified in desktop Chromium and at a narrow viewport; visual refinements remain possible.
 
 ### Problem and desired outcome
 
@@ -30,7 +30,15 @@ Current date labels are irregular and the year placement feels awkward. The view
 
 This is one possible solution. Alternative designs are welcome if they provide clear month boundaries and a regular weekly rhythm.
 
-### Questions to resolve when designing
+### Initial design decisions
+
+- Month bands and faint weekly separators extend through the timeline height, behind cards and geometry.
+- The heading shows the visible year or year range; month names omit the year.
+- Clipped month labels stay at the left of the visible band and disappear if the band is too narrow to fit them.
+- Monday separators always remain weekly. Day-number labels thin at a regular, calendar-anchored stride when space is limited.
+- The Today label sits below the axis, leaving the month and week label rows clear.
+
+### Questions for future refinement
 
 - How far should month backgrounds and week separators extend vertically?
 - Where should the year appear, especially when the viewport crosses a year boundary?
@@ -61,7 +69,7 @@ The following sequence is a starting point, not a fixed schedule. Time readabili
 
 ## Development and agent workflow
 
-- Start with agents implementing and verifying authorized changes; the user reviews before commits or deployment.
+- Agents implement and verify authorized changes and make focused milestone commits, as subsequently authorized by the user. Deployment remains outside the current scope.
 - Discuss unspecified product interactions, storage ownership, and schema compatibility through concrete proposals.
 - Report tests and browser checks performed, including checks that could not be run.
 - Keep date arithmetic and layout calculations independently testable, and preserve legacy storage compatibility.

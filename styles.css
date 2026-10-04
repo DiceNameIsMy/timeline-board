@@ -37,6 +37,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .hint { margin: 1rem 0 1.5rem; }
 .timeline-heading { font-size: .875rem; gap: 1rem; padding-bottom: .75rem; }
 .timeline-heading p { margin: 0; }
+.range-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .75rem; }
+#visible-year { font-size: 1rem; }
 #entry-count { color: #555; }
 #timeline { border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; overflow-anchor: none; overscroll-behavior-x: contain; scrollbar-width: none; }
 #timeline::-webkit-scrollbar { display: none; }
@@ -48,6 +50,11 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .axis { stroke: #555; stroke-width: 1.5; }
 .tick { stroke: #777; stroke-width: 1; }
 .tick-label { font-size: .875rem; fill: #555; stroke: #fff; stroke-width: 4; paint-order: stroke; stroke-linejoin: round; }
+.month-band { fill: #fff; }
+.month-band.shaded { fill: #f1f3f5; }
+.month-boundary { stroke: #d3d7dc; stroke-width: 1; }
+.month-label { font-size: .875rem; font-weight: 600; fill: #444; }
+.week-separator { stroke: #dde1e6; stroke-width: 1; stroke-dasharray: 2 4; }
 .entry-geometry { --entry-color: #555; }
 .entry-geometry.event { --entry-color: #245ec7; }
 .connector { fill: none; stroke: #aaa; stroke-width: 1; }

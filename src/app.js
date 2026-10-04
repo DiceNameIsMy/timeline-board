@@ -1,6 +1,7 @@
 import { toDay, fromDay, todayDate, formatRange } from './dates.js';
 import { loadEntries, saveEntries, validateEntry } from './storage.js';
-import { renderTimeline, visibleEntries } from './timeline.js';
+import { visibleEntries } from './timeline.js';
+import { renderTimeline } from './render.js';
 import { outlookDays, viewportRange, makeScrollBuffer, scrollViewStart, shiftViewStart } from './viewport.js';
 
 const get = id => document.getElementById(id);
@@ -49,6 +50,9 @@ function render() {
     canvas, geometry: get('geometry'), boxes: get('boxes'),
     entries: visible, range, today: toDay(today), onEdit: openEditor,
   });
+  const startYear = fromDay(Math.floor(range.start)).slice(0, 4);
+  const endYear = fromDay(Math.floor(range.end)).slice(0, 4);
+  get('visible-year').textContent = startYear === endYear ? startYear : `${startYear} – ${endYear}`;
   get('visible-range').textContent = formatRange(fromDay(Math.floor(range.start)), fromDay(Math.floor(range.end)));
   get('entry-count').textContent = `${visible.length} visible · ${entries.length} total`;
   get('empty').hidden = visible.length !== 0;

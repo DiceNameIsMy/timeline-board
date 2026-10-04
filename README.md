@@ -27,6 +27,8 @@ Open <http://localhost:5173>. `npm start` runs the same command. JavaScript modu
 
 Dates have day-level precision, without times of day. Interval endpoints are positioned at their calendar dates; same-day intervals appear as dots. On a small screen the selected time span still fits; crowded labels use additional vertical space.
 
+Alternating month bands separate the calendar visually. Each Monday has a separator; day-number labels appear every week when space allows and at a regular wider interval on narrow views. Month names sit above the axis, and the visible year or year range appears in the heading. A nearly clipped month can lose its label until more of it is visible.
+
 ## Storage and the previous view
 
 Entries belong to this browser and origin. Different ports, devices, browsers, and `localhost` vs `127.0.0.1` have separate data. Clearing browser data removes entries. There is no sync or backup service.
@@ -52,10 +54,13 @@ Tests cover calendar arithmetic, horizon spacing, clipping, label collisions, di
 
 The browser checklist is add/edit/delete, finish-first task input, completion visibility, reload persistence, 1/3/6 month navigation, Today, overlapping entries, narrow screens, and keyboard focus.
 
+See [browser/README.md](browser/README.md) for deterministic Playwright checks and screenshot verification.
+
 ## Code
 
 - `src/dates.js`: timezone-independent calendar arithmetic, month shifts, and formatting.
-- `src/timeline.js`: horizon geometry, label collisions, interval rails, and SVG/HTML rendering.
+- `src/timeline.js`: calendar bands, Monday separators, label collisions, and interval rails.
+- `src/render.js`: SVG rendering and measured HTML cards.
 - `src/storage.js`: validated JSDoc entry types, legacy migration, and persistence.
 - `src/app.js`: state, native forms, and navigation.
 - `src/viewport.js`: zoom, fractional date positions, scroll buffers, and calendar bounds.

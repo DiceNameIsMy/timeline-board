@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { toDay, fromDay, MIN_DAY, MAX_DAY } from '../src/dates.js';
-import { dayPosition, entryDates, layoutEntries, makeRange, makeTicks, visibleEntries } from '../src/timeline.js';
+import { dayPosition, entryDates, layoutEntries, makeRange, makeMonths, makeTicks, visibleEntries } from '../src/timeline.js';
 
 const range = makeRange('2026-10-04', 3);
 const event = (id, start, end = null) => ({ id, title: id, kind: 'event', start, end });
@@ -142,12 +142,35 @@ test('crowded label layout never shifts the shared date anchor', () => {
   assert.equal(items[0].x, 24);
 });
 
-test('month ticks are positioned by unequal calendar months and sparse on small screens', () => {
+test('month bands follow unequal calendar months, including leap February', () => {
   const outlook = makeRange('2024-01-01', 3);
-  const ticks = makeTicks(outlook, 1000).filter(tick => tick.major);
-  assert.deepEqual(ticks.map(tick => fromDay(tick.day)), ['2024-01-01', '2024-02-01', '2024-03-01', '2024-04-01']);
-  assert.equal(ticks[1].day - ticks[0].day, 31);
-  assert.equal(ticks[2].day - ticks[1].day, 29);
+  const months = makeMonths(outlook);
+  assert.deepEqual(months.map(month => month.date), ['2024-01-01', '2024-02-01', '2024-03-01']);
+  assert.deepEqual(months.map(month => month.end - month.start), [31, 29, 31]);
+  assert.deepEqual(months.map(month => month.shaded), [false, true, false]);
+});
+
+test('month bands clip fractional views and keep shading across year boundaries', () => {
+  const view = { start: toDay('2026-12-20') + 0.5, end: toDay('2027-02-10') + 0.25 };
+  const months = makeMonths(view);
+  assert.equal(months[0].start, view.start);
+  assert.equal(months.at(-1).end, view.end);
+  assert.deepEqual(months.map(month => month.shaded), [true, false, true]);
+  assert.equal(makeMonths({ start: MAX_DAY - 10, end: MAX_DAY }).at(-1).end, MAX_DAY);
+  assert.equal(makeMonths({ start: MIN_DAY, end: MIN_DAY + 92 })[0].start, MIN_DAY);
+});
+
+test('every week has a Monday separator at every zoom; narrow labels thin regularly', () => {
+  for (const width of [280, 800, 1400]) for (const months of [1, 3, 6]) {
+    const view = makeRange('2026-10-04', months);
+    const ticks = makeTicks(view, width);
+    assert.equal(fromDay(ticks[0].day), '2026-10-05');
+    for (let index = 1; index < ticks.length; index++) assert.equal(ticks[index].day - ticks[index - 1].day, 7);
+    assert.ok(ticks.every(tick => new Date(`${fromDay(tick.day)}T00:00:00Z`).getUTCDay() === 1));
+    const labels = ticks.filter(tick => tick.label);
+    const steps = labels.slice(1).map((tick, index) => tick.day - labels[index].day);
+    assert.ok(steps.every(step => step === steps[0]));
+  }
   const small = makeTicks(makeRange('2026-10-04', 6), 280);
   assert.ok(small.filter(tick => tick.label).length < small.length);
 });

@@ -32,7 +32,7 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
   day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
 });
 const monthFormatter = new Intl.DateTimeFormat(undefined, {
-  month: 'short', year: 'numeric', timeZone: 'UTC',
+  month: 'short', timeZone: 'UTC',
 });
 const tickFormatter = new Intl.DateTimeFormat(undefined, {
   day: 'numeric', month: 'short', timeZone: 'UTC',

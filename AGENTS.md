@@ -6,10 +6,14 @@ This is a small static app using HTML, CSS, and native JavaScript modules. `inde
 
 - `app.js`: application state, forms, and navigation.
 - `dates.js`: calendar arithmetic and date formatting.
-- `timeline.js`: proportional geometry, collision layout, and SVG/HTML rendering.
+- `timeline.js`: proportional geometry, calendar bands, and collision layout.
+- `render.js`: measured HTML cards and SVG rendering.
+- `viewport.js`: zoom, fractional scroll positions, scroll buffers, and calendar bounds.
 - `storage.js`: validation, versioned persistence, and legacy migration.
 
 Tests live in `test/`. Keep calculation functions independent of the DOM so they remain easy to test.
+
+Product direction and open ideas live in `PLANS.md`. Prioritize a personal, keyboard-friendly timeline with about five overlapping entries; keep descriptions outside the timeline. The user authorizes agents to make verified milestone commits for the current implementation work.
 
 ## Build, Test, and Development Commands
 
@@ -32,6 +36,8 @@ Follow existing JavaScript style: two-space indentation, single quotes, semicolo
 Use `node:test` and `node:assert/strict`. Name files `test/<module>.test.js` and describe expected behavior in test names. No numerical coverage threshold is configured. Add focused regression tests for changed calendar, spacing, clipping, collision, validation, or migration behavior.
 
 For UI changes, check add/edit/delete, completion filtering, reload persistence, navigation, narrow screens, and keyboard focus. Report browser checks that could not be performed.
+
+Use the isolated Playwright checks in `browser/checks.js` as described in `browser/README.md`. Never seed fixtures or clear storage in a user's browser profile. Inspect screenshots for visual changes and report touch checks separately from desktop browser checks.
 
 ## Commit & Pull Request Guidelines
 

@@ -1,4 +1,4 @@
-import { toDay, fromDay, shiftMonths, formatMonth, formatTickDate, formatRange } from './dates.js';
+import { toDay, fromDay, shiftMonths, formatMonth, MAX_DAY } from './dates.js';
 
 /** Inclusive outlook endpoints, shifted using calendar months rather than fixed day counts. */
 export function makeRange(date, months) {
@@ -88,135 +88,36 @@ export function layoutEntries(entries, range, width, sizes = new Map(), unit = 1
   };
 }
 
-/** Sparse labels selected by available pixel spacing, independently of screen size. */
+/**
+ * Calendar month bands, clipped to the viewport. Endpoints are month boundaries,
+ * not inclusive entry endpoints. Shading stays anchored to the calendar while scrolling.
+ * @returns {{date: string, start: number, end: number, label: string, shaded: boolean}[]}
+ */
+export function makeMonths(range) {
+  const months = [];
+  let date = `${fromDay(Math.floor(range.start)).slice(0, 7)}-01`;
+  while (toDay(date) < range.end) {
+    const start = toDay(date);
+    const next = date.startsWith('9999-12') ? null : shiftMonths(date, 1);
+    const end = next ? toDay(next) : MAX_DAY + 1;
+    const monthIndex = Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7)) - 1;
+    months.push({ date, start: Math.max(start, range.start), end: Math.min(end, range.end), label: formatMonth(date), shaded: monthIndex % 2 === 1 });
+    if (!next) break;
+    date = next;
+  }
+  return months;
+}
+
+/** Every Monday is a separator; day-number labels thin at a regular stride on narrow views. */
 export function makeTicks(range, width, padding = 24, unit = 1) {
   const ticks = [];
-  let monthDate = `${fromDay(Math.floor(range.start)).slice(0, 7)}-01`;
-  while (toDay(monthDate) <= range.end) {
-    const day = toDay(monthDate);
-    if (day >= range.start) ticks.push({ day, label: formatMonth(monthDate), major: true });
-    const next = shiftMonths(monthDate, 1);
-    if (next === monthDate) break;
-    monthDate = next;
-  }
   const pixelsPerWeek = dayPosition(range.start + 7, range, width, padding) - padding;
-  if (pixelsPerWeek >= 56 * unit) {
-    const firstDay = Math.ceil(range.start);
-    const firstMonday = firstDay + ((4 - firstDay) % 7 + 7) % 7;
-    for (let day = firstMonday; day <= range.end; day += 7) {
-      if (ticks.every(tick => Math.abs(dayPosition(tick.day, range, width, padding) - dayPosition(day, range, width, padding)) >= 68 * unit)) {
-        ticks.push({ day, label: formatTickDate(fromDay(day)), major: false });
-      }
-    }
-  }
-  ticks.sort((a, b) => a.day - b.day);
-  let previousLabel = -Infinity;
-  for (const tick of ticks) {
-    const x = dayPosition(tick.day, range, width, padding);
-    if (x - previousLabel < 76 * unit) tick.label = '';
-    else previousLabel = x;
+  const stride = Math.max(1, Math.ceil(28 * unit / Math.max(1, pixelsPerWeek)));
+  const firstDay = Math.ceil(range.start);
+  const firstMonday = firstDay + ((4 - firstDay) % 7 + 7) % 7;
+  for (let day = firstMonday; day <= range.end; day += 7) {
+    const labeled = ((day - 4) / 7) % stride === 0;
+    ticks.push({ day, label: labeled ? String(Number(fromDay(day).slice(8))) : '' });
   }
   return ticks;
-}
-
-const SVG_NS = 'http://www.w3.org/2000/svg';
-function svgElement(tag, attributes, text) {
-  const element = document.createElementNS(SVG_NS, tag);
-  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
-  if (text !== undefined) element.textContent = text;
-  return element;
-}
-
-export function renderTimeline({ canvas, geometry, boxes, entries, range, today, onEdit }) {
-  const width = canvas.clientWidth;
-  if (width <= 0) return;
-  const unit = parseFloat(getComputedStyle(canvas).fontSize) / 16;
-  const focusedId = boxes.contains(document.activeElement) ? document.activeElement.dataset.id : null;
-  const initial = layoutEntries(entries, range, width, new Map(), unit);
-  const buttons = new Map();
-  const existing = new Map([...boxes.children].map(button => [button.dataset.id, button]));
-  for (const item of initial.items) {
-    const { entry, dates } = item;
-    const button = existing.get(entry.id) ?? document.createElement('button');
-    button.type = 'button';
-    button.className = `entry-box ${entry.kind}${entry.completed ? ' complete' : ''}`;
-    button.dataset.id = entry.id;
-    button.style.width = `${initial.boxWidth}px`;
-    const dateLabel = formatRange(dates.start, dates.end);
-    button.setAttribute('aria-label', `${entry.title}, ${entry.kind}${entry.completed ? ', complete' : ''}, ${dateLabel}. Edit entry.`);
-    for (const [className, text] of [
-      ['entry-title', entry.title], ['entry-date', dateLabel],
-      ['entry-type', entry.kind === 'task' ? `Task${entry.completed ? ' · complete' : ' · finish ' + formatTickDate(entry.finish)}` : 'Event'],
-    ]) {
-      let span = button.querySelector(`.${className}`);
-      if (!span) {
-        span = document.createElement('span');
-        span.className = className;
-        button.append(span);
-      }
-      if (span.textContent !== text) span.textContent = text;
-    }
-    button.onclick = () => onEdit(entry);
-    buttons.set(entry.id, button);
-    if (!existing.has(entry.id)) boxes.append(button);
-  }
-  for (const [id, button] of existing) if (!buttons.has(id)) button.remove();
-  const sizes = new Map([...buttons].map(([id, button]) => [id, button.offsetHeight]));
-  const layout = layoutEntries(entries, range, width, sizes, unit);
-  canvas.style.height = `${layout.height}px`;
-  geometry.setAttribute('viewBox', `0 0 ${width} ${layout.height}`);
-  geometry.replaceChildren();
-  geometry.append(svgElement('line', { x1: 0, x2: width, y1: layout.axisY, y2: layout.axisY, class: 'axis' }));
-  for (const item of layout.items) {
-    const button = buttons.get(item.entry.id);
-    button.style.left = `${item.left}px`;
-    button.style.top = `${item.y}px`;
-    const group = svgElement('g', { class: `entry-geometry ${item.entry.kind}${item.entry.completed ? ' complete' : ''}` });
-    if (item.start !== item.end) {
-      for (const x of [item.x1, item.x2]) {
-        group.append(svgElement('line', {
-          x1: x, x2: x, y1: layout.axisY, y2: item.markerY, class: 'endpoint-guide',
-        }));
-      }
-    }
-    group.append(svgElement('path', { d: item.connector, class: 'connector' }));
-    if (item.start !== item.end) {
-      group.append(svgElement('line', { x1: item.x1, x2: item.x2, y1: item.markerY, y2: item.markerY, class: 'interval' }));
-      for (const [x, clipped, direction, finish] of [
-        [item.x1, item.before, -1, false], [item.x2, item.after, 1, item.entry.kind === 'task'],
-      ]) {
-        group.append(clipped
-          ? svgElement('path', { d: `M ${x - direction * 5 * unit} ${item.markerY - 4 * unit} L ${x} ${item.markerY} L ${x - direction * 5 * unit} ${item.markerY + 4 * unit}`, class: 'continuation' })
-          : svgElement('circle', { cx: x, cy: item.markerY, r: (finish ? 5 : 3) * unit, class: 'marker' }));
-      }
-    } else group.append(svgElement('circle', { cx: item.x, cy: item.markerY, r: 5 * unit, class: 'marker' }));
-    geometry.append(group);
-    const highlight = () => group.classList.toggle('highlight', button.matches(':hover, :focus'));
-    for (const event of ['mouseenter', 'mouseleave', 'focus', 'blur']) button[`on${event}`] = highlight;
-    highlight();
-  }
-  // Draw date labels over connectors so crossing branches cannot obscure their text.
-  let previousLabelRight = -Infinity;
-  for (const tick of makeTicks(range, width, layout.padding, unit)) {
-    const x = dayPosition(tick.day, range, width, layout.padding);
-    geometry.append(svgElement('line', { x1: x, x2: x, y1: layout.axisY - 4 * unit, y2: layout.axisY + 4 * unit, class: 'tick' }));
-    if (tick.label) {
-      const label = svgElement('text', {
-        x, y: layout.tickY, class: 'tick-label',
-        'text-anchor': x > width - layout.padding - 68 * unit ? 'end' : 'start',
-      }, tick.label);
-      geometry.append(label);
-      const bounds = label.getBBox();
-      if (bounds.x < previousLabelRight + 12 * unit) label.remove();
-      else previousLabelRight = bounds.x + bounds.width;
-    }
-  }
-  if (today >= range.start && today <= range.end) {
-    const x = dayPosition(today, range, width, layout.padding);
-    const marker = svgElement('g', { class: 'today-marker' });
-    marker.append(svgElement('line', { x1: x, x2: x, y1: layout.axisY - 40 * unit, y2: layout.axisY + 14 * unit }));
-    marker.append(svgElement('text', { x, y: layout.axisY - 48 * unit, 'text-anchor': x > width / 2 ? 'end' : 'start' }, 'Today'));
-    geometry.append(marker);
-  }
-  if (focusedId && !buttons.has(focusedId)) canvas.closest('[role="region"]').focus({ preventScroll: true });
 }
